@@ -5,7 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 func RequestLogging(logger *xlogger.Logger) echo.MiddlewareFunc {

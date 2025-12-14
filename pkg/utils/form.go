@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"mime/multipart"
 
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
+	xhttp "thomas.vn/apartment_service/pkg/http"
 )
 
 // ParseCompressedData extracts data from form field, decompressing if needed

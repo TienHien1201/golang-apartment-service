@@ -4,9 +4,9 @@ import (
 	"flag"
 	"log"
 
-	"thomas.vn/hr_recruitment/internal/config"
-	"thomas.vn/hr_recruitment/internal/migration"
-	xmigration "thomas.vn/hr_recruitment/pkg/migration"
+	"thomas.vn/apartment_service/internal/config"
+	"thomas.vn/apartment_service/internal/migration"
+	xmigration "thomas.vn/apartment_service/pkg/migration"
 )
 
 var (

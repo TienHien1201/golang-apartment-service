@@ -2,11 +2,11 @@ package handler
 
 import (
 	"github.com/labstack/echo/v4"
-	xAuth "thomas.vn/hr_recruitment/internal/server/http/handler/auth"
+	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
 
-	xuser "thomas.vn/hr_recruitment/internal/server/http/handler/user"
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
+	xhttp "thomas.vn/apartment_service/pkg/http"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type handler struct {

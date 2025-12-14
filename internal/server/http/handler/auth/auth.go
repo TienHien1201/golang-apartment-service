@@ -3,10 +3,10 @@ package xauth
 import (
 	"github.com/labstack/echo/v4"
 
-	"thomas.vn/hr_recruitment/internal/domain/model"
-	"thomas.vn/hr_recruitment/internal/domain/usecase"
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	"thomas.vn/apartment_service/internal/domain/model"
+	"thomas.vn/apartment_service/internal/domain/usecase"
+	xhttp "thomas.vn/apartment_service/pkg/http"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type AuthHandler struct {

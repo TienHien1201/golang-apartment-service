@@ -7,10 +7,10 @@ import (
 
 	"gorm.io/gorm"
 
-	"thomas.vn/hr_recruitment/internal/domain/model"
-	"thomas.vn/hr_recruitment/internal/domain/repository"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
-	xutils "thomas.vn/hr_recruitment/pkg/utils"
+	"thomas.vn/apartment_service/internal/domain/model"
+	"thomas.vn/apartment_service/internal/domain/repository"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xutils "thomas.vn/apartment_service/pkg/utils"
 )
 
 type userRepository struct {

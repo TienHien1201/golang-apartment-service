@@ -8,7 +8,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
 
-	"thomas.vn/hr_recruitment/internal/domain/consts"
+	"thomas.vn/apartment_service/internal/domain/consts"
 )
 
 type CreateStaffIndex struct{}

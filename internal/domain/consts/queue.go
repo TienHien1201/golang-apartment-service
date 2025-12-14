@@ -1,6 +1,6 @@
 package consts
 
-import xqueue "thomas.vn/hr_recruitment/pkg/queue"
+import xqueue "thomas.vn/apartment_service/pkg/queue"
 
 const (
 	// UploadFileJobName is the name of the upload file job

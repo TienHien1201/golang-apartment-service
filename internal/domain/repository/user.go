@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"thomas.vn/hr_recruitment/internal/domain/model"
+	"thomas.vn/apartment_service/internal/domain/model"
 )
 
 type UserRepository interface {

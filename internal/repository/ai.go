@@ -8,10 +8,10 @@ import (
 	"mime/multipart"
 	"net/textproto"
 
-	"thomas.vn/hr_recruitment/internal/domain/model"
-	"thomas.vn/hr_recruitment/internal/domain/service"
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	"thomas.vn/apartment_service/internal/domain/model"
+	"thomas.vn/apartment_service/internal/domain/service"
+	xhttp "thomas.vn/apartment_service/pkg/http"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type AiRepository struct {

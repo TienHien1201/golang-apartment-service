@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"thomas.vn/hr_recruitment/internal/config"
+	"thomas.vn/apartment_service/internal/config"
 )
 
 var (

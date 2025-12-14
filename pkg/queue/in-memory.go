@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 // InMemoryQueue represents an in-memory queue server.

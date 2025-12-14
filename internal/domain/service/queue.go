@@ -1,6 +1,6 @@
 package service
 
-import xqueue "thomas.vn/hr_recruitment/pkg/queue"
+import xqueue "thomas.vn/apartment_service/pkg/queue"
 
 type QueueService interface {
 	xqueue.QueueService

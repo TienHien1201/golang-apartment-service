@@ -1,6 +1,6 @@
 GOPATH:=$(shell go env GOPATH)
 VERSION=$(shell git describe --tags --always)
-NAME=hr_recruitment
+NAME=apartment_service
 ENV=dev
 DB=mysql
 COMMAND=version

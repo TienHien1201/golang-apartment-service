@@ -3,8 +3,8 @@ package migration
 import (
 	"github.com/elastic/go-elasticsearch/v6"
 
-	esmg "thomas.vn/hr_recruitment/internal/migration/es"
-	xesmigration "thomas.vn/hr_recruitment/pkg/migration/es"
+	esmg "thomas.vn/apartment_service/internal/migration/es"
+	xesmigration "thomas.vn/apartment_service/pkg/migration/es"
 )
 
 func NewESMigrator(name string, client *elasticsearch.Client) *xesmigration.Migrator {

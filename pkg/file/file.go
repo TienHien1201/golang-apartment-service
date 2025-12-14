@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"thomas.vn/hr_recruitment/pkg/retry"
+	"thomas.vn/apartment_service/pkg/retry"
 )
 
 type File struct {

@@ -9,8 +9,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	xmiddleware "thomas.vn/hr_recruitment/pkg/http/middleware"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type Server struct {

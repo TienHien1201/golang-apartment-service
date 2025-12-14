@@ -11,7 +11,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
 
-	xes "thomas.vn/hr_recruitment/pkg/es"
+	xes "thomas.vn/apartment_service/pkg/es"
 )
 
 const (

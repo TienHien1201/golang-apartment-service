@@ -8,7 +8,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type Server struct {

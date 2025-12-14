@@ -1,9 +1,9 @@
 package config
 
 import (
-	xcache "thomas.vn/hr_recruitment/pkg/cache"
-	xes "thomas.vn/hr_recruitment/pkg/es"
-	xmysql "thomas.vn/hr_recruitment/pkg/mysql"
+	xcache "thomas.vn/apartment_service/pkg/cache"
+	xes "thomas.vn/apartment_service/pkg/es"
+	xmysql "thomas.vn/apartment_service/pkg/mysql"
 )
 
 type DatabaseConfig struct {

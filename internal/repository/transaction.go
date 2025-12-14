@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"thomas.vn/hr_recruitment/internal/domain/repository"
+	"thomas.vn/apartment_service/internal/domain/repository"
 )
 
 type Transaction struct {

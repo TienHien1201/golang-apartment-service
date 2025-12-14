@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"thomas.vn/hr_recruitment/internal/domain/model"
-	"thomas.vn/hr_recruitment/internal/domain/repository"
-	"thomas.vn/hr_recruitment/internal/domain/usecase"
-	"thomas.vn/hr_recruitment/pkg/auth"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	"thomas.vn/apartment_service/internal/domain/model"
+	"thomas.vn/apartment_service/internal/domain/repository"
+	"thomas.vn/apartment_service/internal/domain/usecase"
+	"thomas.vn/apartment_service/pkg/auth"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type AuthRepository interface {

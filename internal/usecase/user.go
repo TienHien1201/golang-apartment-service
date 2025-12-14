@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"thomas.vn/hr_recruitment/internal/domain/consts"
-	"thomas.vn/hr_recruitment/internal/domain/model"
-	"thomas.vn/hr_recruitment/internal/domain/repository"
-	"thomas.vn/hr_recruitment/internal/domain/service"
-	"thomas.vn/hr_recruitment/internal/domain/usecase"
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	"thomas.vn/apartment_service/internal/domain/consts"
+	"thomas.vn/apartment_service/internal/domain/model"
+	"thomas.vn/apartment_service/internal/domain/repository"
+	"thomas.vn/apartment_service/internal/domain/service"
+	"thomas.vn/apartment_service/internal/domain/usecase"
+	xhttp "thomas.vn/apartment_service/pkg/http"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type userUsecase struct {

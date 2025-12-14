@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	xmigration "thomas.vn/hr_recruitment/pkg/migration"
+	xmigration "thomas.vn/apartment_service/pkg/migration"
 )
 
 type Migrator struct {

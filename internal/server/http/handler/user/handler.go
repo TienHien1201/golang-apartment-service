@@ -1,8 +1,8 @@
 package xuser
 
 import (
-	"thomas.vn/hr_recruitment/internal/domain/usecase"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	"thomas.vn/apartment_service/internal/domain/usecase"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type Handler struct {

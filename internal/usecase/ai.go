@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"thomas.vn/hr_recruitment/internal/domain/consts"
-	"thomas.vn/hr_recruitment/internal/domain/service"
-	"thomas.vn/hr_recruitment/internal/domain/usecase"
-	"thomas.vn/hr_recruitment/internal/repository"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
+	"thomas.vn/apartment_service/internal/domain/consts"
+	"thomas.vn/apartment_service/internal/domain/service"
+	"thomas.vn/apartment_service/internal/domain/usecase"
+	"thomas.vn/apartment_service/internal/repository"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type aiUsecase struct {

@@ -2,10 +2,10 @@ package migration
 
 import (
 	"gorm.io/gorm"
-	mysqlmg "thomas.vn/hr_recruitment/internal/migration/mysql"
+	mysqlmg "thomas.vn/apartment_service/internal/migration/mysql"
 
-	xmigration "thomas.vn/hr_recruitment/pkg/migration"
-	xmysqlmigration "thomas.vn/hr_recruitment/pkg/migration/mysql"
+	xmigration "thomas.vn/apartment_service/pkg/migration"
+	xmysqlmigration "thomas.vn/apartment_service/pkg/migration/mysql"
 )
 
 func NewMySQLMigrator(name string, db *gorm.DB) *xmysqlmigration.Migrator {

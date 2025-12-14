@@ -3,27 +3,26 @@ package model
 import (
 	"time"
 
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
+	xhttp "thomas.vn/apartment_service/pkg/http"
 )
 
 type User struct {
-	ID         int        `gorm:"primaryKey;column:id" json:"id" example:"1"`
-	Email      string     `gorm:"column:email;uniqueIndex:uniq_email;size:255" json:"email" validate:"required,email" example:"abc@host.com"`
-	FullName   string     `gorm:"column:full_name;size:255" json:"full_name,omitempty" example:"John Doe"`
-	Avatar     *string    `gorm:"column:avatar;size:255" json:"avatar,omitempty" example:"https://avatar.com/abc.jpg"`
-	Password   string     `gorm:"column:password;size:255" json:"-"` // không trả ra JSON
-	FacebookID string     `gorm:"column:facebook_id;uniqueIndex:uniq_facebook_id;size:255" json:"facebook_id,omitempty"`
-	GoogleID   string     `gorm:"column:google_id;uniqueIndex:uniq_google_id;size:255" json:"google_id,omitempty"`
-	TotpSecret *string    `gorm:"column:totp_secret;size:255" json:"totp_secret,omitempty"`
-	RoleID     int        `gorm:"column:role_id;index:idx_role_id;default:2" json:"role_id" example:"2"`
-	DeletedBy  int        `gorm:"column:deleted_by;default:0" json:"deleted_by"`
-	IsDeleted  bool       `gorm:"column:is_deleted;default:false" json:"is_deleted"`
-	IsActive   int        `gorm:"column:is_active;default:1" json:"is_active"`
-	DeletedAt  *time.Time `gorm:"column:deleted_at" json:"deleted_at,omitempty"`
-	CreatedAt  time.Time  `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at" example:"2025-01-01T10:00:00Z"`
-	UpdatedAt  time.Time  `gorm:"column:updated_at;default:CURRENT_TIMESTAMP" json:"updated_at" example:"2025-01-01T10:00:00Z"`
+	ID         int        `json:"id" gorm:"primary_key" example:"1"`
+	Email      string     `json:"email" gorm:"unique" example:"abc@host.com"`
+	FullName   string     `json:"full_name" example:"John Doe"`
+	Avatar     *string    `json:"avatar,omitempty" example:"https://avatar.com/abc.jpg"`
+	Password   string     `json:"password" example:"password"`
+	FacebookID string     `json:"facebook_id" example:"123"`
+	GoogleID   string     `json:"google_id" example:"123"`
+	TotpSecret *string    `json:"totp_secret" example:"secret"`
+	RoleID     int        `json:"role_id" example:"2"`
+	DeletedBy  int        `json:"deleted_by" example:"1"`
+	IsDeleted  bool       `json:"is_deleted" example:"0"`
+	IsActive   int        `json:"is_active" example:"1"`
+	DeletedAt  *time.Time `json:"deleted_at" example:"2020-09-06T10:10:10Z"`
+	CreatedAt  time.Time  `json:"created_at" example:"2025-01-01T10:00:00Z"`
+	UpdatedAt  time.Time  `json:"updated_at" example:"2025-01-01T10:00:00Z"`
 
-	// Quan hệ (nếu cần dùng trong Go)
 	// Role             Role               `gorm:"foreignKey:RoleID;references:id;constraint:OnUpdate:RESTRICT"`
 	// ChatGroupMembers []ChatGroupMember  `gorm:"foreignKey:UserID"`
 	// ChatGroups       []ChatGroup        `gorm:"foreignKey:OwnerID"`

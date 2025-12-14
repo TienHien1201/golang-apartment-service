@@ -1,6 +1,6 @@
 package service
 
-import xfile "thomas.vn/hr_recruitment/pkg/file"
+import xfile "thomas.vn/apartment_service/pkg/file"
 
 type FileService interface {
 	xfile.FileService

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"thomas.vn/hr_recruitment/internal/config"
-	"thomas.vn/hr_recruitment/internal/di"
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
-	xserver "thomas.vn/hr_recruitment/pkg/server"
+	"thomas.vn/apartment_service/internal/config"
+	"thomas.vn/apartment_service/internal/di"
+	xhttp "thomas.vn/apartment_service/pkg/http"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xserver "thomas.vn/apartment_service/pkg/server"
 )
 
 type App struct {
