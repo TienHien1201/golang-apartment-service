@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	xhttp "thomas.vn/apartment_service/pkg/http"
+	"thomas.vn/apartment_service/pkg/query"
 )
 
 type User struct {
@@ -50,9 +50,9 @@ type UpdateUserRequest struct {
 }
 
 type ListUserRequest struct {
-	xhttp.PaginationOptions
-	xhttp.DateRangeOptions
-	xhttp.SortOptions
+	query.PaginationOptions
+	query.DateRangeOptions
+	query.SortOptions
 	Status int `query:"status" validate:"omitempty,oneof=1 2"`
 }
 

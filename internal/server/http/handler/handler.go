@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/labstack/echo/v4"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
+	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
 	xhttp "thomas.vn/apartment_service/pkg/http"
@@ -10,18 +11,20 @@ import (
 )
 
 type handler struct {
-	logger *xlogger.Logger
-	user   *xuser.Handler
-	auth   *xAuth.Handler
-	ai     *AiHandler
+	logger         *xlogger.Logger
+	user           *xuser.Handler
+	auth           *xAuth.Handler
+	ai             *AiHandler
+	authMiddleware *xmiddleware.AuthMiddleware
 }
 
-func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *AiHandler) xhttp.Handler {
+func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *AiHandler, authMiddleware *xmiddleware.AuthMiddleware) xhttp.Handler {
 	return &handler{
-		logger: logger,
-		user:   user,
-		auth:   auth,
-		ai:     ai,
+		logger:         logger,
+		user:           user,
+		auth:           auth,
+		ai:             ai,
+		authMiddleware: authMiddleware,
 	}
 }
 
@@ -53,7 +56,7 @@ func (h *handler) registerUserRoutes(e *echo.Group) {
 		users.GET("/:id", h.user.User().Get)
 		users.PUT("/:id", h.user.User().Update)
 		users.DELETE("/:id", h.user.User().Delete)
-		users.GET("", h.user.User().List)
+		users.GET("", h.user.User().List, h.authMiddleware.Protect)
 	}
 }
 

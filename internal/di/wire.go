@@ -1,17 +1,18 @@
 package di
 
 import (
-	"thomas.vn/hr_recruitment/internal/config"
-	"thomas.vn/hr_recruitment/internal/repository"
-	"thomas.vn/hr_recruitment/internal/server/http/handler"
-	xAuth "thomas.vn/hr_recruitment/internal/server/http/handler/auth"
-	xuser "thomas.vn/hr_recruitment/internal/server/http/handler/user"
-	"thomas.vn/hr_recruitment/internal/usecase"
-	"thomas.vn/hr_recruitment/pkg/auth"
-	xfile "thomas.vn/hr_recruitment/pkg/file"
-	xhttp "thomas.vn/hr_recruitment/pkg/http"
-	xlogger "thomas.vn/hr_recruitment/pkg/logger"
-	xqueue "thomas.vn/hr_recruitment/pkg/queue"
+	"thomas.vn/apartment_service/internal/config"
+	"thomas.vn/apartment_service/internal/repository"
+	"thomas.vn/apartment_service/internal/server/http/handler"
+	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
+	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
+	"thomas.vn/apartment_service/internal/usecase"
+	"thomas.vn/apartment_service/pkg/auth"
+	xfile "thomas.vn/apartment_service/pkg/file"
+	xhttp "thomas.vn/apartment_service/pkg/http"
+	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
+	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xqueue "thomas.vn/apartment_service/pkg/queue"
 )
 
 type AppContainer struct {
@@ -46,13 +47,14 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	userRepo := repository.NewUserRepository(logger, mysqlClient.DB)
 	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
 
-	// === TOKEN SERVICE (JWT) ===
-	tokenSvc := auth.NewToken(
-		cfg.JWT.AccessSecret,
-		cfg.JWT.AccessExpire,
-		cfg.JWT.RefreshSecret,
-		cfg.JWT.RefreshExpire,
-	)
+	tokenCfg := auth.Config{
+		AccessSecret:  cfg.JWT.AccessSecret,
+		AccessExpire:  cfg.JWT.AccessExpire,
+		RefreshSecret: cfg.JWT.RefreshSecret,
+		RefreshExpire: cfg.JWT.RefreshExpire,
+	}
+
+	tokenSvc := auth.NewToken(tokenCfg)
 
 	// === USECASES ===
 	userUC := usecase.NewUserUsecase(logger, userRepo, redisCache)
@@ -69,12 +71,19 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 
 	aiHandler := handler.NewAiHandler(logger, aiUC)
 
+	authMiddleware := xmiddleware.NewAuthMiddleware(
+		logger,
+		tokenSvc,
+		userRepo,
+	)
+
 	// === HTTP ROOT HANDLER ===
 	httpHandler := handler.NewHTTPHandler(
 		logger,
 		userHandler,
 		authHandler,
 		aiHandler,
+		authMiddleware,
 	)
 
 	// === CLEANUP FUNCTION ===

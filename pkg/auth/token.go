@@ -18,21 +18,25 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func NewToken(accessSecret string, accessExpire time.Duration, refreshSecret string, refreshExpire time.Duration) *Token {
+func NewToken(cfg Config) *Token {
 	return &Token{
-		accessSecret:  accessSecret,
-		accessExpire:  accessExpire,
-		refreshSecret: refreshSecret,
-		refreshExpire: refreshExpire,
+		accessSecret:  cfg.AccessSecret,
+		accessExpire:  cfg.AccessExpire,
+		refreshSecret: cfg.RefreshSecret,
+		refreshExpire: cfg.RefreshExpire,
 	}
 }
 
 func (s *Token) CreateTokens(userID uint) (accessToken, refreshToken string, err error) {
-	accessToken, err = s.generateToken(userID, s.refreshSecret, s.refreshExpire)
+	accessToken, err = s.generateToken(userID, s.accessSecret, s.accessExpire)
 	if err != nil {
 		return "", "", err
 	}
-	return accessToken, accessToken, nil
+	refreshToken, err = s.generateToken(userID, s.refreshSecret, s.refreshExpire)
+	if err != nil {
+		return "", "", err
+	}
+	return accessToken, refreshToken, nil
 }
 
 func (s *Token) VerifyRefreshToken(tokenStr string) (*Claims, error) {
