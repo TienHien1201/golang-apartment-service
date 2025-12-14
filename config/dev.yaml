@@ -1,0 +1,13 @@
+extends: base
+app:
+  env: dev
+
+database:
+  mysql:
+    # host: 1.1.1.1
+    host: localhost
+
+  elasticSearch:
+    addresses:
+#      - http://1.1.1.1:9200
+      - http://localhost:9200

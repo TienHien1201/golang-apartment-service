@@ -1,0 +1,25 @@
+{
+    "go.delveConfig": {
+        "apiVersion": 2,
+        "showGlobalVariables": true
+    },
+    "go.testFlags": ["-v"],
+    "go.buildFlags": [],
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": ["--fast"],
+    "go.testTimeout": "30s",
+    "go.coverOnSave": false,
+    "go.coverOnSingleTest": true,
+    "go.coverageDecorator": {
+        "type": "highlight",
+        "coveredHighlightColor": "rgba(64,128,128,0.5)",
+        "uncoveredHighlightColor": "rgba(128,64,64,0.25)"
+    },
+    "go.useLanguageServer": true,
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    }
+} 

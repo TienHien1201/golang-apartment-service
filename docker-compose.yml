@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: go_hr_recruitment_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tuyendung_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: tuyendung_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: hasaki@pass123
+      MYSQL_DATABASE: staging_db
+      MYSQL_USER: viennh
+      MYSQL_PASSWORD: hasaki@pass123
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./config/mysql/init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - tuyendung_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "viennh", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.8.23
+    container_name: tuyendung_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.monitoring.collection.enabled=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - tuyendung_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.8.23
+    container_name: tuyendung_kibana
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - xpack.security.enabled=false
+      - xpack.monitoring.enabled=true
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - tuyendung_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  
+  kibana_2:
+    image: docker.elastic.co/kibana/kibana:6.8.23
+    container_name: tuyendung_kibana_2
+    environment:
+      - ELASTICSEARCH_URL=http://172.16.100.228:9200
+      - xpack.security.enabled=false
+      - xpack.monitoring.enabled=true
+    ports:
+      - "5602:5601"
+    networks:
+      - tuyendung_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  mysql_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  tuyendung_network:
+    driver: bridge 

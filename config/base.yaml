@@ -1,0 +1,56 @@
+app:
+  env: local
+  debug: true
+
+server:
+  http:
+    host:
+    port: 1424
+    timeout: 30s
+
+logger:
+  level: debug
+  format: console
+  output: stdout
+
+database:
+  mysql:
+    host: localhost
+    port: 3307
+    database: aklht_apartment
+    username: root
+    password: 8000
+    timezone: Local
+    parseTime: true
+    maxIdleConns: 5
+    maxOpenConns: 100
+    connMaxLifetime: 120
+
+  redis:
+    host: localhost
+    port: 6379
+    password: ''
+    db: 0
+    poolSize: 12000
+    minIdleConns: 2
+    poolTimeout: 60
+
+  elasticSearch:
+    addresses:
+      - http://localhost:9200
+    username: 'elastic'
+    password: 'hOjTSduL9of1SN72'
+    enableLogging: true
+
+ai:
+  url: https://hasa-agent.vgpu.rdhasaki.com/api/
+  downloadurl: https://tuyendung-qc.inshasaki.com/
+  staffurl: https://test-ws.inshasaki.com/
+  stafftoken: 1234567890
+
+jwt:
+  access_secret: "ACCESS_TOKEN_SECRET"
+  refresh_secret: "REFRESH_TOKEN_SECRET"
+  access_expire: 168h
+  refresh_expire: 720h
+  token_type: Bearer

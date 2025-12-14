@@ -1,0 +1,106 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Main Application",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/app",
+            "env": {
+                "GO111MODULE": "on"
+            },
+            "args": [
+                "--env=dev"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Launch Migration Tool",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/migrate",
+            "env": {
+                "GO111MODULE": "on"
+            },
+            "args": [
+                "--env=dev"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug Current File",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${file}",
+            "env": {
+                "GO111MODULE": "on"
+            }
+        },
+        {
+            "name": "Debug Test Current File",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${file}",
+            "env": {
+                "GO111MODULE": "on"
+            },
+            "args": [
+                "-v"
+            ]
+        },
+        {
+            "name": "Debug Test Current Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "env": {
+                "GO111MODULE": "on"
+            },
+            "args": [
+                "-v"
+            ]
+        },
+        {
+            "name": "Attach to Process",
+            "type": "go",
+            "request": "attach",
+            "mode": "local",
+            "processId": 0
+        },
+        {
+            "name": "Launch Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}"
+        },
+        {
+            "name": "Launch with env",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "env": {
+                "APP_ENV": "local"
+            }
+        },
+        {
+            "name": "Debug Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "args": [
+                "-test.v",
+                "-test.run",
+                "TestUploadRealPDF"
+            ],
+            "cwd": "${fileDirname}"
+        }
+    ]
+} 

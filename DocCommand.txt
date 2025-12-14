@@ -1,0 +1,8 @@
+# Command run migration
+```
+# Chạy hết (nếu muốn)
+make migrate ENV=dev DB=mysql COMMAND=up STEPS=999
+
+# Hoặc chỉ chạy 1 bước mới
+make migrate ENV=dev DB=mysql COMMAND=up STEPS=1
+```

@@ -1,0 +1,26 @@
+[
+  {
+    "job_id": 84,
+    "mid": 4579,
+    "owner": 1,
+    "note": "Test candidate 1",
+    "status": 1,
+    "file_index": 0
+  },
+  {
+    "job_id": 1,
+    "mid": 4579,
+    "owner": 1,
+    "note": "Test candidate 2",
+    "status": 1,
+    "file_index": 1
+  },
+  {
+    "job_id": 2,
+    "mid": 4579,
+    "owner": 1,
+    "note": "Test candidate 3",
+    "status": 1,
+    "file_index": 2
+  }
+] 

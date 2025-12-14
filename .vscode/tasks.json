@@ -1,0 +1,63 @@
+  {
+      "version": "2.0.0",
+      "tasks": [
+          {
+              "label": "Build Main Application",
+              "type": "shell",
+              "command": "go build -v ./cmd/app",
+              "group": {
+                  "kind": "build",
+                  "isDefault": true
+              },
+              "problemMatcher": [
+                  "$go"
+              ]
+          },
+          {
+              "label": "Run Main Application",
+              "type": "shell",
+              "command": "go run ./cmd/app/main.go --env=dev",
+              "group": "none",
+              "problemMatcher": [
+                  "$go"
+              ]
+          },
+          {
+              "label": "Build Migration Tool",
+              "type": "shell",
+              "command": "go build -v ./cmd/migrate",
+              "group": "build",
+              "problemMatcher": [
+                  "$go"
+              ]
+          },
+          {
+              "label": "Run Tests",
+              "type": "shell",
+              "command": "go test -v ./...",
+              "group": {
+                  "kind": "test",
+                  "isDefault": true
+              },
+              "problemMatcher": [
+                  "$go"
+              ]
+          },
+          {
+              "label": "Generate Wire DI",
+              "type": "shell",
+              "command": "cd ./cmd/app && wire",
+              "problemMatcher": [
+                  "$go"
+              ]
+          },
+          {
+              "label": "Lint",
+              "type": "shell",
+              "command": "golangci-lint run",
+              "problemMatcher": [
+                  "$go"
+              ]
+          }
+      ]
+  }
