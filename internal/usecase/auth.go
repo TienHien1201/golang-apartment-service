@@ -13,12 +13,6 @@ import (
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
-type AuthRepository interface {
-	Login(ctx context.Context, email, password string) (string, string, error)
-	Register(ctx context.Context, req *model.CreateUserRequest) (*model.User, error)
-	RefreshToken(ctx context.Context, refreshToken string) (newAccessToken string, err error)
-	Logout(ctx context.Context) error
-}
 type authUsecase struct {
 	logger   *xlogger.Logger
 	userRepo repository.UserRepository
@@ -100,4 +94,8 @@ func (u *authUsecase) RefreshToken(_ context.Context, refreshToken string) (stri
 func (u *authUsecase) Logout(_ context.Context) error {
 	u.logger.Info("User logged out (stateless)")
 	return nil
+}
+
+func (u *authUsecase) GetInfo(_ context.Context, user *model.User) (*model.User, error) {
+	return user, nil
 }

@@ -33,7 +33,7 @@ func (h *handler) HealthCheck(c echo.Context) error {
 }
 
 func (h *handler) RegisterRoutes(e *echo.Echo) {
-	api := e.Group("/api/v2")
+	api := e.Group("/api")
 
 	// Base routes
 	api.GET("/health", h.HealthCheck)
@@ -74,5 +74,6 @@ func (h *handler) registerAuthRoutes(e *echo.Group) {
 		auth.POST("/login", h.auth.Auth().Login)
 		auth.POST("/refresh", h.auth.Auth().Refresh)
 		auth.POST("/logout", h.auth.Auth().Logout)
+		auth.GET("/get-info", h.auth.Auth().GetInfo, h.authMiddleware.Protect)
 	}
 }

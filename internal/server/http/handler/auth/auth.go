@@ -1,11 +1,13 @@
 package xauth
 
 import (
-	"github.com/labstack/echo/v4"
+	"net/http"
 
+	"github.com/labstack/echo/v4"
 	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 	xhttp "thomas.vn/apartment_service/pkg/http"
+	xcontext "thomas.vn/apartment_service/pkg/http/context"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
@@ -100,4 +102,18 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	return xhttp.SuccessResponse(c, map[string]string{
 		"message": "Logged out successfully",
 	})
+}
+
+func (h *AuthHandler) GetInfo(c echo.Context) error {
+	user, err := xcontext.MustGetUser(c)
+	if err != nil {
+		return err
+	}
+
+	result, err := h.authUC.GetInfo(c.Request().Context(), user)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, result)
 }

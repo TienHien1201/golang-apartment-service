@@ -11,4 +11,5 @@ type AuthUsecase interface {
 	Register(ctx context.Context, req *model.CreateUserRequest) (*model.User, error)
 	RefreshToken(ctx context.Context, refreshToken string) (newAccessToken string, err error)
 	Logout(ctx context.Context) error
+	GetInfo(ctx context.Context, user *model.User) (*model.User, error)
 }

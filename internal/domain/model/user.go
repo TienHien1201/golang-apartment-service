@@ -12,8 +12,8 @@ type User struct {
 	FullName   string     `json:"full_name" example:"John Doe"`
 	Avatar     *string    `json:"avatar,omitempty" example:"https://avatar.com/abc.jpg"`
 	Password   string     `json:"password" example:"password"`
-	FacebookID string     `json:"facebook_id" example:"123"`
-	GoogleID   string     `json:"google_id" example:"123"`
+	FacebookID *string    `json:"facebook_id" gorm:"unique"`
+	GoogleID   *string    `json:"google_id" gorm:"unique"`
 	TotpSecret *string    `json:"totp_secret" example:"secret"`
 	RoleID     int        `json:"role_id" example:"2"`
 	DeletedBy  int        `json:"deleted_by" example:"1"`
