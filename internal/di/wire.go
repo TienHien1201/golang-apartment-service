@@ -43,10 +43,6 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	fileSvc := xfile.NewHTTPFile(httpClient.HTTPClient())
 	aiURLConfig := cfg.Ai
 
-	// === REPOSITORIES ===
-	userRepo := repository.NewUserRepository(logger, mysqlClient.DB)
-	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
-
 	tokenCfg := auth.Config{
 		AccessSecret:  cfg.JWT.AccessSecret,
 		AccessExpire:  cfg.JWT.AccessExpire,
@@ -54,28 +50,25 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		RefreshExpire: cfg.JWT.RefreshExpire,
 	}
 
+	// === REPOSITORIES ===
+	userRepo := repository.NewUserRepository(logger, mysqlClient.DB)
+	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
+	permissionRepo := repository.NewPermissionRepository(logger, mysqlClient.DB)
+
 	tokenSvc := auth.NewToken(tokenCfg)
 
 	// === USECASES ===
 	userUC := usecase.NewUserUsecase(logger, userRepo, redisCache)
 	authUC := usecase.NewAuthUsecase(logger, userRepo, tokenSvc)
 	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
+	permissionUC := usecase.NewPermissionUsecase(permissionRepo)
 
 	// === HANDLERS ===
 	userHandler := xuser.NewHandler(logger, xuser.WithUserUsecase(userUC))
-
-	authHandler := xAuth.NewHandler(
-		logger,
-		xAuth.WithAuthUsecase(authUC),
-	)
-
+	authHandler := xAuth.NewHandler(logger, xAuth.WithAuthUsecase(authUC))
 	aiHandler := handler.NewAiHandler(logger, aiUC)
-
-	authMiddleware := xmiddleware.NewAuthMiddleware(
-		logger,
-		tokenSvc,
-		userRepo,
-	)
+	authMiddlewareHandler := xmiddleware.NewAuthMiddleware(logger, tokenSvc, userRepo)
+	permissionMiddlewareHandler := xmiddleware.NewPermissionMiddleware(permissionUC)
 
 	// === HTTP ROOT HANDLER ===
 	httpHandler := handler.NewHTTPHandler(
@@ -83,7 +76,8 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		userHandler,
 		authHandler,
 		aiHandler,
-		authMiddleware,
+		authMiddlewareHandler,
+		permissionMiddlewareHandler,
 	)
 
 	// === CLEANUP FUNCTION ===

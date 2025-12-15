@@ -11,20 +11,22 @@ import (
 )
 
 type handler struct {
-	logger         *xlogger.Logger
-	user           *xuser.Handler
-	auth           *xAuth.Handler
-	ai             *AiHandler
-	authMiddleware *xmiddleware.AuthMiddleware
+	logger               *xlogger.Logger
+	user                 *xuser.Handler
+	auth                 *xAuth.Handler
+	ai                   *AiHandler
+	authMiddleware       *xmiddleware.AuthMiddleware
+	permissionMiddleware *xmiddleware.PermissionMiddleware
 }
 
-func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *AiHandler, authMiddleware *xmiddleware.AuthMiddleware) xhttp.Handler {
+func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *AiHandler, authMiddleware *xmiddleware.AuthMiddleware, permissionMiddleware *xmiddleware.PermissionMiddleware) xhttp.Handler {
 	return &handler{
-		logger:         logger,
-		user:           user,
-		auth:           auth,
-		ai:             ai,
-		authMiddleware: authMiddleware,
+		logger:               logger,
+		user:                 user,
+		auth:                 auth,
+		ai:                   ai,
+		authMiddleware:       authMiddleware,
+		permissionMiddleware: permissionMiddleware,
 	}
 }
 
@@ -74,6 +76,6 @@ func (h *handler) registerAuthRoutes(e *echo.Group) {
 		auth.POST("/login", h.auth.Auth().Login)
 		auth.POST("/refresh", h.auth.Auth().Refresh)
 		auth.POST("/logout", h.auth.Auth().Logout)
-		auth.GET("/get-info", h.auth.Auth().GetInfo, h.authMiddleware.Protect)
+		auth.GET("/get-info", h.auth.Auth().GetInfo, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }
