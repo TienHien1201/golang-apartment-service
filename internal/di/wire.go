@@ -6,17 +6,20 @@ import (
 	"thomas.vn/apartment_service/internal/server/http/handler"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
+	queuejobs "thomas.vn/apartment_service/internal/server/queue/jobs"
 	"thomas.vn/apartment_service/internal/usecase"
 	"thomas.vn/apartment_service/pkg/auth"
 	xfile "thomas.vn/apartment_service/pkg/file"
 	xhttp "thomas.vn/apartment_service/pkg/http"
 	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
+	mail "thomas.vn/apartment_service/pkg/mailer"
 	xqueue "thomas.vn/apartment_service/pkg/queue"
 )
 
 type AppContainer struct {
-	HTTPHandler xhttp.Handler
+	HTTPHandler   xhttp.Handler
+	InMemoryQueue *xqueue.InMemoryQueue
 }
 
 func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer, func(), error) {
@@ -50,6 +53,16 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		RefreshExpire: cfg.JWT.RefreshExpire,
 	}
 
+	mailer := mail.NewMailer(
+		mail.SMTPConfig{
+			Host: "smtp.gmail.com",
+			Port: "587",
+			User: "phamtienhien08072018@gmail.com",
+			Pass: "gqqrdaxprykasskf",
+		},
+		"Hien CNTT <tienhien.cntt@gmail.com>",
+	)
+
 	// === REPOSITORIES ===
 	userRepo := repository.NewUserRepository(logger, mysqlClient.DB)
 	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
@@ -59,9 +72,10 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 
 	// === USECASES ===
 	userUC := usecase.NewUserUsecase(logger, userRepo, redisCache)
-	authUC := usecase.NewAuthUsecase(logger, userRepo, tokenSvc)
+	authUC := usecase.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
 	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
 	permissionUC := usecase.NewPermissionUsecase(permissionRepo)
+	mailUC := usecase.NewMailUsecase(mailer)
 
 	// === HANDLERS ===
 	userHandler := xuser.NewHandler(logger, xuser.WithUserUsecase(userUC))
@@ -80,6 +94,12 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		permissionMiddlewareHandler,
 	)
 
+	//========= Create job ==============
+	mailJob := queuejobs.NewMailJob(logger, mailUC)
+	inMemoryQueue.RegisterJobs([]xqueue.Job{mailJob})
+	if err := inMemoryQueue.Start(); err != nil {
+		return nil, nil, err
+	}
 	// === CLEANUP FUNCTION ===
 	cleanup := func() {
 		if err := mysqlClient.Close(); err != nil {
@@ -94,6 +114,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	}
 
 	return &AppContainer{
-		HTTPHandler: httpHandler,
+		HTTPHandler:   httpHandler,
+		InMemoryQueue: inMemoryQueue,
 	}, cleanup, nil
 }

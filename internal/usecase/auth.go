@@ -6,24 +6,28 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 	"thomas.vn/apartment_service/pkg/auth"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xqueue "thomas.vn/apartment_service/pkg/queue"
 )
 
 type authUsecase struct {
-	logger   *xlogger.Logger
-	userRepo repository.UserRepository
-	tokenSvc *auth.Token
+	logger       *xlogger.Logger
+	userRepo     repository.UserRepository
+	tokenSvc     *auth.Token
+	queueService xqueue.QueueService
 }
 
-func NewAuthUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, token *auth.Token) usecase.AuthUsecase {
+func NewAuthUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, token *auth.Token, queueService xqueue.QueueService) usecase.AuthUsecase {
 	return &authUsecase{
-		logger:   logger,
-		userRepo: userRepo,
-		tokenSvc: token,
+		logger:       logger,
+		userRepo:     userRepo,
+		tokenSvc:     token,
+		queueService: queueService,
 	}
 }
 func (u *authUsecase) Register(ctx context.Context, req *model.CreateUserRequest) (*model.User, error) {
@@ -51,6 +55,15 @@ func (u *authUsecase) Register(ctx context.Context, req *model.CreateUserRequest
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+	_ = u.queueService.PublishMessage(
+		ctx,
+		consts.MailJobType,
+		&model.MailPayload{
+			Type:     consts.QueueMailRegister,
+			Email:    req.Email,
+			FullName: req.FullName,
+		},
+	)
 
 	return u.userRepo.CreateUser(ctx, newUser)
 }
@@ -72,6 +85,16 @@ func (u *authUsecase) Login(ctx context.Context, email, password string) (string
 		return "", "", err
 	}
 	u.logger.Info("User login successfully", xlogger.String("email", email), xlogger.String("access_token", accessToken))
+	_ = u.queueService.PublishMessage(
+		ctx,
+		consts.MailJobType,
+		&model.MailPayload{
+			Type:     consts.QueueMailLogin,
+			Email:    user.Email,
+			FullName: user.FullName,
+		},
+	)
+
 	return accessToken, refreshToken, nil
 }
 
