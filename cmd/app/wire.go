@@ -33,7 +33,6 @@ func NewApp(cfg *config.Config) (*App, func(), error) {
 
 	// Initialize HTTP server
 	httpServer := xhttp.NewHTTPServer(logger, cfg.Server.HTTP.Host, cfg.Server.HTTP.Port, container.HTTPHandler)
-
 	return &App{
 		logger:  logger,
 		servers: []xserver.Server{httpServer},

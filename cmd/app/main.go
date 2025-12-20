@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"thomas.vn/apartment_service/internal/config"
 )
 
@@ -45,6 +46,10 @@ func init() {
 // @description Type "Bearer" followed by a space and JWT token
 func main() {
 	flag.Parse()
+
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system env")
+	}
 
 	// Load configuration for the specified environment
 	cfg, err := config.LoadConfig(config.Environment(Env), "./config")

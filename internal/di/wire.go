@@ -8,12 +8,15 @@ import (
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
 	queuejobs "thomas.vn/apartment_service/internal/server/queue/jobs"
 	"thomas.vn/apartment_service/internal/usecase"
+	auth2 "thomas.vn/apartment_service/internal/usecase/auth"
+	"thomas.vn/apartment_service/internal/usecase/user"
 	"thomas.vn/apartment_service/pkg/auth"
 	xfile "thomas.vn/apartment_service/pkg/file"
 	xhttp "thomas.vn/apartment_service/pkg/http"
 	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 	mail "thomas.vn/apartment_service/pkg/mailer"
+	xgoogle "thomas.vn/apartment_service/pkg/oauth/google"
 	xqueue "thomas.vn/apartment_service/pkg/queue"
 )
 
@@ -63,6 +66,12 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		"Hien CNTT <tienhien.cntt@gmail.com>",
 	)
 
+	googleOAuth := xgoogle.New(
+		cfg.Auth.Google.ClientID,
+		cfg.Auth.Google.ClientSecret,
+		cfg.Auth.Google.CallbackURL,
+	)
+
 	// === REPOSITORIES ===
 	userRepo := repository.NewUserRepository(logger, mysqlClient.DB)
 	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
@@ -71,15 +80,15 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	tokenSvc := auth.NewToken(tokenCfg)
 
 	// === USECASES ===
-	userUC := usecase.NewUserUsecase(logger, userRepo, redisCache)
-	authUC := usecase.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
+	userUC := user.NewUserUsecase(logger, userRepo, redisCache)
+	authUC := auth2.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
 	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
 	permissionUC := usecase.NewPermissionUsecase(permissionRepo)
 	mailUC := usecase.NewMailUsecase(mailer)
 
 	// === HANDLERS ===
 	userHandler := xuser.NewHandler(logger, xuser.WithUserUsecase(userUC))
-	authHandler := xAuth.NewHandler(logger, xAuth.WithAuthUsecase(authUC))
+	authHandler := xAuth.NewHandler(logger, xAuth.WithGoogleOAuth(googleOAuth), xAuth.WithAuthUsecase(authUC))
 	aiHandler := handler.NewAiHandler(logger, aiUC)
 	authMiddlewareHandler := xmiddleware.NewAuthMiddleware(logger, tokenSvc, userRepo)
 	permissionMiddlewareHandler := xmiddleware.NewPermissionMiddleware(permissionUC)

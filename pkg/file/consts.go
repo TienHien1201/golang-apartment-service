@@ -3,10 +3,11 @@ package xfile
 import "errors"
 
 const (
-	PhotoMaxWidth  = 1400
-	PhotoMaxHeight = 1400
-	DefaultMaxSize = 2 << 20 // 2MB
-	DefaultMinSize = 1 << 10 // 1KB
+	PhotoMaxWidth     = 1400
+	PhotoMaxHeight    = 1400
+	DefaultMaxSize    = 2 << 20 // 2MB
+	DefaultMinSize    = 1 << 10 // 1KB
+	DefaultUserRoleID = 2
 )
 
 var (

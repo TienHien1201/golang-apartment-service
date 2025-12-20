@@ -1,25 +1,26 @@
 package xauth
 
 import (
-	"net/http"
-
 	"github.com/labstack/echo/v4"
 	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 	xhttp "thomas.vn/apartment_service/pkg/http"
 	xcontext "thomas.vn/apartment_service/pkg/http/context"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xgoogle "thomas.vn/apartment_service/pkg/oauth/google"
 )
 
 type AuthHandler struct {
-	logger *xlogger.Logger
-	authUC usecase.AuthUsecase
+	logger      *xlogger.Logger
+	authUC      usecase.AuthUsecase
+	googleOAuth *xgoogle.Client
 }
 
-func NewAuthHandler(logger *xlogger.Logger, authUC usecase.AuthUsecase) *AuthHandler {
+func NewAuthHandler(logger *xlogger.Logger, authUC usecase.AuthUsecase, googleOAuth *xgoogle.Client) *AuthHandler {
 	return &AuthHandler{
-		logger: logger,
-		authUC: authUC,
+		logger:      logger,
+		authUC:      authUC,
+		googleOAuth: googleOAuth,
 	}
 }
 
@@ -61,8 +62,8 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	}
 
 	return xhttp.SuccessResponse(c, map[string]string{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
 	})
 }
 
@@ -115,5 +116,5 @@ func (h *AuthHandler) GetInfo(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, result)
+	return xhttp.SuccessResponse(c, result)
 }

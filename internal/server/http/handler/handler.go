@@ -77,5 +77,8 @@ func (h *handler) registerAuthRoutes(e *echo.Group) {
 		auth.POST("/refresh", h.auth.Auth().Refresh)
 		auth.POST("/logout", h.auth.Auth().Logout)
 		auth.GET("/get-info", h.auth.Auth().GetInfo, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+		auth.POST("/refresh-token", h.auth.Auth().Refresh)
+		auth.GET("/google", h.auth.Auth().GoogleLogin)
+		auth.GET("/google/callback", h.auth.Auth().GoogleCallback)
 	}
 }

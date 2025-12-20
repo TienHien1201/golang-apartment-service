@@ -22,12 +22,6 @@ type User struct {
 	DeletedAt  *time.Time `json:"deleted_at" example:"2020-09-06T10:10:10Z"`
 	CreatedAt  time.Time  `json:"created_at" example:"2025-01-01T10:00:00Z"`
 	UpdatedAt  time.Time  `json:"updated_at" example:"2025-01-01T10:00:00Z"`
-
-	// Role             Role               `gorm:"foreignKey:RoleID;references:id;constraint:OnUpdate:RESTRICT"`
-	// ChatGroupMembers []ChatGroupMember  `gorm:"foreignKey:UserID"`
-	// ChatGroups       []ChatGroup        `gorm:"foreignKey:OwnerID"`
-	// ChatMessages     []ChatMessage      `gorm:"foreignKey:UserID"`
-	// Chats            []Chat             `gorm:"foreignKey:UserID"`
 }
 
 type UserIDRequest struct {

@@ -54,3 +54,9 @@ jwt:
   access_expire: 168h
   refresh_expire: 720h
   token_type: Bearer
+
+auth:
+  google:
+    client_id: ""
+    client_secret: ""
+    callback_url: ""

@@ -23,6 +23,7 @@ type Config struct {
 	Data     DataConfig
 	Ai       AiConfig
 	JWT      JWTConfig
+	Auth     AuthConfig
 }
 
 func LoadConfig(env Environment, configPath string) (*Config, error) {
@@ -59,6 +60,10 @@ func loadBaseConfig(configPath string) (*viper.Viper, error) {
 	v.SetConfigType("yaml")
 	v.AddConfigPath(configPath)
 
+	v.SetEnvPrefix("APARTMENT_APP")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}
@@ -72,8 +77,7 @@ func loadEnvConfig(env Environment, configPath string) (*viper.Viper, error) {
 	v.SetConfigType("yaml")
 	v.AddConfigPath(configPath)
 
-	// Enable environment variable substitution
-	v.SetEnvPrefix("HASAKI_APP")
+	v.SetEnvPrefix("APARTMENT_APP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
