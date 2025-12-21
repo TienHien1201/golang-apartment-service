@@ -41,7 +41,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user *model.User) (*mod
 	return user, nil
 }
 
-func (r *userRepository) GetUserByID(ctx context.Context, id int) (*model.User, error) {
+func (r *userRepository) GetUserByID(ctx context.Context, id uint) (*model.User, error) {
 	var user model.User
 	result := r.userTable.WithContext(ctx).Where("id = ?", id).First(&user)
 	if result.Error != nil {
@@ -84,7 +84,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, user *model.User) (*mod
 	return user, nil
 }
 
-func (r *userRepository) DeleteUser(ctx context.Context, id int) error {
+func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
 	result := r.userTable.WithContext(ctx).Where("id = ?", id).Delete(&model.User{})
 	if result.Error != nil {
 		r.logger.Error("Delete user failed", xlogger.Error(result.Error))

@@ -25,7 +25,7 @@ type User struct {
 }
 
 type UserIDRequest struct {
-	ID int `json:"id" param:"id" swaggerignore:"true" validate:"required,gt=0"`
+	ID uint `json:"id" param:"id" swaggerignore:"true" validate:"required,gt=0"`
 }
 
 type CreateUserRequest struct {

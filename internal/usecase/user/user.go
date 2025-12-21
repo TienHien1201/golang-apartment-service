@@ -54,7 +54,7 @@ func (u *userUsecase) CreateUser(ctx context.Context, req *model.CreateUserReque
 	return createdUser, nil
 }
 
-func (u *userUsecase) GetUser(ctx context.Context, id int) (*model.User, error) {
+func (u *userUsecase) GetUser(ctx context.Context, id uint) (*model.User, error) {
 	user, err := u.userRepo.GetUserByID(ctx, id)
 	if err != nil {
 		u.logger.Error("Failed to get user", xlogger.Error(err))
@@ -68,7 +68,7 @@ func (u *userUsecase) GetUser(ctx context.Context, id int) (*model.User, error) 
 }
 
 func (u *userUsecase) UpdateUser(ctx context.Context, req *model.UpdateUserRequest) (*model.User, error) {
-	user, err := u.GetUser(ctx, req.ID)
+	user, err := u.GetUser(ctx, uint(req.ID))
 	if err != nil {
 		u.logger.Error("Failed to get user", xlogger.Error(err))
 		return nil, err
@@ -97,14 +97,14 @@ func (u *userUsecase) UpdateUser(ctx context.Context, req *model.UpdateUserReque
 	return updatedUser, nil
 }
 
-func (u *userUsecase) DeleteUser(ctx context.Context, id int) error {
+func (u *userUsecase) DeleteUser(ctx context.Context, id uint) error {
 	user, err := u.GetUser(ctx, id)
 	if err != nil {
 		u.logger.Error("Failed to get user", xlogger.Error(err))
 		return err
 	}
 
-	if err := u.userRepo.DeleteUser(ctx, user.ID); err != nil {
+	if err := u.userRepo.DeleteUser(ctx, uint(user.ID)); err != nil {
 		u.logger.Error("Failed to delete user", xlogger.Error(err))
 		return err
 	}

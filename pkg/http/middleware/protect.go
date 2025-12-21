@@ -56,7 +56,7 @@ func (m *AuthMiddleware) Protect(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid access token")
 		}
 
-		user, err := m.userRepo.GetUserByID(c.Request().Context(), int(claims.UserID))
+		user, err := m.userRepo.GetUserByID(c.Request().Context(), claims.UserID)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "Get user failed")
 		}

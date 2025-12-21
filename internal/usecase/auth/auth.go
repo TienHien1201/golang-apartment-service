@@ -97,21 +97,51 @@ func (u *authUsecase) Login(ctx context.Context, email, password string) (string
 
 	return accessToken, refreshToken, nil
 }
+func (u *authUsecase) RefreshToken(
+	ctx context.Context,
+	accessToken string,
+	refreshToken string,
+) (string, string, error) {
 
-func (u *authUsecase) RefreshToken(_ context.Context, refreshToken string) (string, error) {
-	claims, err := u.tokenSvc.VerifyRefreshToken(refreshToken)
+	refreshClaims, err := u.tokenSvc.VerifyRefreshToken(refreshToken)
 	if err != nil {
-		u.logger.Error("RefreshToken Failed - token verification failed", xlogger.Error(err))
-		return "", err
+		u.logger.Error("Invalid refresh token", xlogger.Error(err))
+		return "", "", err
 	}
-	newAccessToken, _, err := u.tokenSvc.CreateTokens(claims.UserID)
+
+	accessClaims, err := u.tokenSvc.VerifyAccessToken(accessToken)
+	if err != nil {
+		u.logger.Error("Invalid access token", xlogger.Error(err))
+		return "", "", err
+	}
+
+	if accessClaims.UserID != refreshClaims.UserID {
+		err = fmt.Errorf("token user mismatch")
+		u.logger.Error("Token invalid", xlogger.Error(err))
+		return "", "", err
+	}
+
+	user, err := u.userRepo.GetUserByID(ctx, refreshClaims.UserID)
+	if err != nil {
+		u.logger.Error("User not found", xlogger.Error(err))
+		return "", "", err
+	}
+	if user == nil {
+		return "", "", fmt.Errorf("user does not exist")
+	}
+
+	newAccessToken, newRefreshToken, err := u.tokenSvc.CreateTokens(uint(user.ID))
 	if err != nil {
 		u.logger.Error("Failed to generate new access token", xlogger.Error(err))
-		return "", err
+		return "", "", err
 	}
 
-	u.logger.Info("Token refreshed successfully", xlogger.Uint("user_id", claims.UserID))
-	return newAccessToken, nil
+	u.logger.Info(
+		"Token refreshed successfully",
+		xlogger.Uint("user_id", uint(user.ID)),
+	)
+
+	return newAccessToken, newRefreshToken, nil
 }
 
 func (u *authUsecase) Logout(_ context.Context) error {

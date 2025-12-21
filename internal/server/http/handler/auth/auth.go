@@ -69,7 +69,8 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 // REFRESH TOKEN
 type refreshRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
+	AccessToken  string `json:"accessToken" validate:"required"`
 }
 
 func (h *AuthHandler) Refresh(c echo.Context) error {
@@ -80,14 +81,15 @@ func (h *AuthHandler) Refresh(c echo.Context) error {
 		return xhttp.BadRequestResponse(c, err)
 	}
 
-	newAccessToken, err := h.authUC.RefreshToken(ctx, req.RefreshToken)
+	newAccessToken, newRefreshToken, err := h.authUC.RefreshToken(ctx, req.AccessToken, req.RefreshToken)
 	if err != nil {
 		h.logger.Error("Refresh token failed", xlogger.Error(err))
 		return xhttp.AppErrorResponse(c, err)
 	}
 
 	return xhttp.SuccessResponse(c, map[string]string{
-		"access_token": newAccessToken,
+		"accessToken":  newAccessToken,
+		"refreshToken": newRefreshToken,
 	})
 }
 
