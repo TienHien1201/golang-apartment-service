@@ -3,14 +3,15 @@ package xcontext
 import (
 	"net/http"
 
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
+
 	"github.com/labstack/echo/v4"
-	"thomas.vn/apartment_service/internal/domain/model"
 )
 
 const UserContextKey = "user"
 
-func MustGetUser(c echo.Context) (*model.User, error) {
-	user, ok := c.Get(UserContextKey).(*model.User)
+func MustGetUser(c echo.Context) (*xuser.User, error) {
+	user, ok := c.Get(UserContextKey).(*xuser.User)
 	if !ok || user == nil {
 		return nil, echo.NewHTTPError(
 			http.StatusUnauthorized,

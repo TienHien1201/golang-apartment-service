@@ -80,7 +80,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	tokenSvc := auth.NewToken(tokenCfg)
 
 	// === USECASES ===
-	userUC := user.NewUserUsecase(logger, userRepo, redisCache)
+	userUC := user.NewUserUsecase(logger, userRepo, redisCache, fileSvc, inMemoryQueue)
 	authUC := auth2.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
 	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
 	permissionUC := usecase.NewPermissionUsecase(permissionRepo)
@@ -105,7 +105,8 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 
 	//========= Create job ==============
 	mailJob := queuejobs.NewMailJob(logger, mailUC)
-	inMemoryQueue.RegisterJobs([]xqueue.Job{mailJob})
+	upLoadAvatarJob := queuejobs.NewUploadUserAvatarJob(logger, fileSvc, userUC)
+	inMemoryQueue.RegisterJobs([]xqueue.Job{mailJob, upLoadAvatarJob})
 	if err := inMemoryQueue.Start(); err != nil {
 		return nil, nil, err
 	}

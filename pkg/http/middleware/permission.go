@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 
-	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 )
 
@@ -22,7 +22,7 @@ func NewPermissionMiddleware(
 func (m *PermissionMiddleware) Check(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
-		user, ok := c.Get(string(UserContextKey)).(*model.User)
+		user, ok := c.Get(string(UserContextKey)).(*xuser.User)
 		if !ok || user == nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, "User not authenticated")
 		}

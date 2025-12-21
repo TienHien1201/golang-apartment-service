@@ -2,32 +2,38 @@ package user
 
 import (
 	"context"
+	"path/filepath"
 	"time"
 
 	"thomas.vn/apartment_service/internal/domain/consts"
-	"thomas.vn/apartment_service/internal/domain/model"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/service"
-	"thomas.vn/apartment_service/internal/domain/usecase"
+	user2 "thomas.vn/apartment_service/internal/domain/usecase"
 	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xqueue "thomas.vn/apartment_service/pkg/queue"
 )
 
 type userUsecase struct {
-	logger   *xlogger.Logger
-	userRepo repository.UserRepository
-	cacheSvc service.CacheService
+	logger      *xlogger.Logger
+	userRepo    repository.UserRepository
+	cacheSvc    service.CacheService
+	fileService service.FileService
+	queue       xqueue.QueueService
 }
 
-func NewUserUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, cacheSvc service.CacheService) usecase.UserUsecase {
+func NewUserUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, cacheSvc service.CacheService, fileService service.FileService, queue xqueue.QueueService) user2.UserUsecase {
 	return &userUsecase{
-		logger:   logger,
-		userRepo: userRepo,
-		cacheSvc: cacheSvc,
+		logger:      logger,
+		userRepo:    userRepo,
+		cacheSvc:    cacheSvc,
+		fileService: fileService,
+		queue:       queue,
 	}
 }
 
-func (u *userUsecase) CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.User, error) {
+func (u *userUsecase) CreateUser(ctx context.Context, req *xuser.CreateUserRequest) (*xuser.User, error) {
 	existingUser, err := u.userRepo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		u.logger.Error("Failed to check existing user", xlogger.Error(err))
@@ -37,7 +43,7 @@ func (u *userUsecase) CreateUser(ctx context.Context, req *model.CreateUserReque
 		return nil, consts.EmailAlreadyExistsError(req.Email)
 	}
 
-	user := &model.User{
+	user := &xuser.User{
 		Email:    req.Email,
 		Password: req.Password, // Note: Password should be hashed before storing
 		FullName: req.FullName,
@@ -54,7 +60,7 @@ func (u *userUsecase) CreateUser(ctx context.Context, req *model.CreateUserReque
 	return createdUser, nil
 }
 
-func (u *userUsecase) GetUser(ctx context.Context, id uint) (*model.User, error) {
+func (u *userUsecase) GetUser(ctx context.Context, id uint) (*xuser.User, error) {
 	user, err := u.userRepo.GetUserByID(ctx, id)
 	if err != nil {
 		u.logger.Error("Failed to get user", xlogger.Error(err))
@@ -67,7 +73,7 @@ func (u *userUsecase) GetUser(ctx context.Context, id uint) (*model.User, error)
 	return user, nil
 }
 
-func (u *userUsecase) UpdateUser(ctx context.Context, req *model.UpdateUserRequest) (*model.User, error) {
+func (u *userUsecase) UpdateUser(ctx context.Context, req *xuser.UpdateUserRequest) (*xuser.User, error) {
 	user, err := u.GetUser(ctx, uint(req.ID))
 	if err != nil {
 		u.logger.Error("Failed to get user", xlogger.Error(err))
@@ -112,7 +118,7 @@ func (u *userUsecase) DeleteUser(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (u *userUsecase) ListUsers(ctx context.Context, req *model.ListUserRequest) ([]*model.User, int64, error) {
+func (u *userUsecase) ListUsers(ctx context.Context, req *xuser.ListUserRequest) ([]*xuser.User, int64, error) {
 	users, total, err := u.userRepo.ListUsers(ctx, req)
 	if err != nil {
 		u.logger.Error("Failed to list user", xlogger.Error(err))
@@ -124,6 +130,60 @@ func (u *userUsecase) ListUsers(ctx context.Context, req *model.ListUserRequest)
 
 func (u *userUsecase) DeleteUsersCreatedBefore(_ context.Context, days time.Time) error {
 	u.logger.Info("Deleting users created before", xlogger.Object("days", days))
+
+	return nil
+}
+
+func (u *userUsecase) UploadLocal(
+	ctx context.Context,
+	req *xuser.UploadAvatarLocalRequest,
+) error {
+
+	if _, err := u.userRepo.GetUserByID(ctx, req.UserID); err != nil {
+		return err
+	}
+
+	err := u.queue.PublishMessage(
+		ctx,
+		consts.UploadUserAvatarJobType,
+		&xuser.UploadAvatarQueuePayload{
+			UserID: req.UserID,
+			File:   req.File,
+		},
+	)
+	if err != nil {
+		u.logger.Error("Publish upload avatar job failed", xlogger.Error(err))
+		return err
+	}
+
+	u.logger.Info("Upload avatar job published",
+		xlogger.Uint("user_id", req.UserID),
+	)
+
+	return nil
+}
+
+func (u *userUsecase) ProcessUploadLocal(
+	ctx context.Context,
+	req *xuser.UploadAvatarLocalInput,
+) error {
+
+	userEntity, err := u.userRepo.GetUserByID(ctx, req.UserID)
+	if err != nil {
+		return err
+	}
+
+	oldAvatar := userEntity.Avatar
+	userEntity.Avatar = req.Filename
+
+	if _, err := u.userRepo.UpdateUser(ctx, userEntity); err != nil {
+		return err
+	}
+
+	if oldAvatar != "" {
+		oldPath := filepath.Join("attachments/images/avatar", oldAvatar)
+		_ = u.fileService.Delete(oldPath)
+	}
 
 	return nil
 }

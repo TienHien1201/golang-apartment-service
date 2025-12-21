@@ -1,4 +1,4 @@
-package model
+package xuser
 
 import (
 	"time"
@@ -10,7 +10,7 @@ type User struct {
 	ID         int        `json:"id" gorm:"primary_key" example:"1"`
 	Email      string     `json:"email" gorm:"unique" example:"abc@host.com"`
 	FullName   string     `json:"full_name" example:"John Doe"`
-	Avatar     *string    `json:"avatar,omitempty" example:"https://avatar.com/abc.jpg"`
+	Avatar     string     `json:"avatar,omitempty" example:"https://avatar.com/abc.jpg"`
 	Password   string     `json:"password" example:"password"`
 	FacebookID *string    `json:"facebook_id" gorm:"unique"`
 	GoogleID   *string    `json:"google_id" gorm:"unique"`

@@ -2,19 +2,19 @@ package xuser
 
 import (
 	"github.com/labstack/echo/v4"
-
-	"thomas.vn/apartment_service/internal/domain/model"
-	"thomas.vn/apartment_service/internal/domain/usecase"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
+	user2 "thomas.vn/apartment_service/internal/domain/usecase"
 	xhttp "thomas.vn/apartment_service/pkg/http"
+	xcontext "thomas.vn/apartment_service/pkg/http/context"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type UserHandler struct {
 	logger *xlogger.Logger
-	userUC usecase.UserUsecase
+	userUC user2.UserUsecase
 }
 
-func NewUserHandler(logger *xlogger.Logger, userUC usecase.UserUsecase) *UserHandler {
+func NewUserHandler(logger *xlogger.Logger, userUC user2.UserUsecase) *UserHandler {
 	return &UserHandler{
 		logger: logger,
 		userUC: userUC,
@@ -33,7 +33,7 @@ func NewUserHandler(logger *xlogger.Logger, userUC usecase.UserUsecase) *UserHan
 // @Failure 500 {object} xhttp.APIResponse500Err{}
 // @Router /api/v2/users [post]
 func (h *UserHandler) Create(c echo.Context) error {
-	var req model.CreateUserRequest
+	var req xuser.CreateUserRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
 	}
@@ -59,7 +59,7 @@ func (h *UserHandler) Create(c echo.Context) error {
 // @Failure 500 {object} xhttp.APIResponse500Err{}
 // @Router /api/v2/users/{id} [get]
 func (h *UserHandler) Get(c echo.Context) error {
-	var req model.UserIDRequest
+	var req xuser.UserIDRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
 	}
@@ -86,7 +86,7 @@ func (h *UserHandler) Get(c echo.Context) error {
 // @Failure 500 {object} xhttp.APIResponse500Err{}
 // @Router /api/v2/users/{id} [put]
 func (h *UserHandler) Update(c echo.Context) error {
-	var req model.UpdateUserRequest
+	var req xuser.UpdateUserRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
 	}
@@ -112,7 +112,7 @@ func (h *UserHandler) Update(c echo.Context) error {
 // @Failure 500 {object} xhttp.APIResponse500Err{}
 // @Router /api/v2/users/{id} [delete]
 func (h *UserHandler) Delete(c echo.Context) error {
-	var req model.UserIDRequest
+	var req xuser.UserIDRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
 	}
@@ -145,7 +145,7 @@ func (h *UserHandler) Delete(c echo.Context) error {
 // @Failure 500 {object} xhttp.APIResponse500Err{}
 // @Router /api/v2/users [get]
 func (h *UserHandler) List(c echo.Context) error {
-	var req model.ListUserRequest
+	var req xuser.ListUserRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
 	}
@@ -157,4 +157,30 @@ func (h *UserHandler) List(c echo.Context) error {
 	}
 
 	return xhttp.ListResponse(c, res, total)
+}
+
+func (h *UserHandler) UploadLocal(c echo.Context) error {
+	ctx := c.Request().Context()
+	user, err := xcontext.MustGetUser(c)
+	if err != nil {
+		return err
+	}
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		return xhttp.BadRequestResponse(c, err)
+	}
+
+	err = h.userUC.UploadLocal(ctx, &xuser.UploadAvatarLocalRequest{
+		UserID: uint(user.ID),
+		File:   file,
+	})
+	if err != nil {
+		h.logger.Error("Upload avatar failed", xlogger.Error(err))
+		return xhttp.AppErrorResponse(c, err)
+	}
+
+	return xhttp.SuccessResponse(c, map[string]string{
+		"message": "Avatar upload is being processed",
+	})
 }

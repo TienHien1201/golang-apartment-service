@@ -2,7 +2,7 @@ package xauth
 
 import (
 	"github.com/labstack/echo/v4"
-	"thomas.vn/apartment_service/internal/domain/model"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 	xhttp "thomas.vn/apartment_service/pkg/http"
 	xcontext "thomas.vn/apartment_service/pkg/http/context"
@@ -26,7 +26,7 @@ func NewAuthHandler(logger *xlogger.Logger, authUC usecase.AuthUsecase, googleOA
 
 // REGISTER
 func (h *AuthHandler) Register(c echo.Context) error {
-	var req model.CreateUserRequest
+	var req xuser.CreateUserRequest
 
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)

@@ -4,14 +4,16 @@ import (
 	"context"
 	"time"
 
-	"thomas.vn/apartment_service/internal/domain/model"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 )
 
 type UserUsecase interface {
-	CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.User, error)
-	GetUser(ctx context.Context, id uint) (*model.User, error)
-	UpdateUser(ctx context.Context, req *model.UpdateUserRequest) (*model.User, error)
+	CreateUser(ctx context.Context, req *xuser.CreateUserRequest) (*xuser.User, error)
+	GetUser(ctx context.Context, id uint) (*xuser.User, error)
+	UpdateUser(ctx context.Context, req *xuser.UpdateUserRequest) (*xuser.User, error)
 	DeleteUser(ctx context.Context, id uint) error
-	ListUsers(ctx context.Context, req *model.ListUserRequest) ([]*model.User, int64, error)
+	ListUsers(ctx context.Context, req *xuser.ListUserRequest) ([]*xuser.User, int64, error)
 	DeleteUsersCreatedBefore(ctx context.Context, days time.Time) error
+	UploadLocal(ctx context.Context, req *xuser.UploadAvatarLocalRequest) error
+	ProcessUploadLocal(ctx context.Context, req *xuser.UploadAvatarLocalInput) error
 }

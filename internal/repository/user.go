@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 
-	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 	xutils "thomas.vn/apartment_service/pkg/utils"
@@ -25,7 +25,7 @@ func NewUserRepository(logger *xlogger.Logger, db *gorm.DB) repository.UserRepos
 	}
 }
 
-func (r *userRepository) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
+func (r *userRepository) CreateUser(ctx context.Context, user *xuser.User) (*xuser.User, error) {
 	user.CreatedAt = xutils.GetTimeNow()
 	user.UpdatedAt = xutils.GetTimeNow()
 
@@ -41,8 +41,8 @@ func (r *userRepository) CreateUser(ctx context.Context, user *model.User) (*mod
 	return user, nil
 }
 
-func (r *userRepository) GetUserByID(ctx context.Context, id uint) (*model.User, error) {
-	var user model.User
+func (r *userRepository) GetUserByID(ctx context.Context, id uint) (*xuser.User, error) {
+	var user xuser.User
 	result := r.userTable.WithContext(ctx).Where("id = ?", id).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -55,8 +55,8 @@ func (r *userRepository) GetUserByID(ctx context.Context, id uint) (*model.User,
 	return &user, nil
 }
 
-func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
-	var user model.User
+func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*xuser.User, error) {
+	var user xuser.User
 	result := r.userTable.WithContext(ctx).Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -69,7 +69,7 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	return &user, nil
 }
 
-func (r *userRepository) UpdateUser(ctx context.Context, user *model.User) (*model.User, error) {
+func (r *userRepository) UpdateUser(ctx context.Context, user *xuser.User) (*xuser.User, error) {
 	user.UpdatedAt = xutils.GetTimeNow()
 
 	result := r.userTable.WithContext(ctx).Save(user)
@@ -85,7 +85,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, user *model.User) (*mod
 }
 
 func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
-	result := r.userTable.WithContext(ctx).Where("id = ?", id).Delete(&model.User{})
+	result := r.userTable.WithContext(ctx).Where("id = ?", id).Delete(&xuser.User{})
 	if result.Error != nil {
 		r.logger.Error("Delete user failed", xlogger.Error(result.Error))
 		return result.Error
@@ -97,8 +97,8 @@ func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (r *userRepository) ListUsers(ctx context.Context, req *model.ListUserRequest) ([]*model.User, int64, error) {
-	var users []*model.User
+func (r *userRepository) ListUsers(ctx context.Context, req *xuser.ListUserRequest) ([]*xuser.User, int64, error) {
+	var users []*xuser.User
 	var total int64
 
 	query := r.userTable.WithContext(ctx)

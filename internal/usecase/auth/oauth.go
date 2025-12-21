@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"thomas.vn/apartment_service/internal/domain/model"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	xfile "thomas.vn/apartment_service/pkg/file"
 )
 
@@ -22,11 +23,11 @@ func (u *authUsecase) GoogleLogin(ctx context.Context, gUser *model.GoogleUser) 
 	googleID := gUser.GoogleID
 
 	if user == nil {
-		user = &model.User{
+		user = &xuser.User{
 			RoleID:    xfile.DefaultUserRoleID,
 			Email:     gUser.Email,
 			FullName:  gUser.FullName,
-			Avatar:    &avatar,
+			Avatar:    avatar,
 			GoogleID:  &googleID,
 			IsActive:  1,
 			CreatedAt: time.Now(),

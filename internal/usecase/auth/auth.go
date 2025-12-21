@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model"
+	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 	"thomas.vn/apartment_service/pkg/auth"
@@ -30,7 +31,7 @@ func NewAuthUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, 
 		queueService: queueService,
 	}
 }
-func (u *authUsecase) Register(ctx context.Context, req *model.CreateUserRequest) (*model.User, error) {
+func (u *authUsecase) Register(ctx context.Context, req *xuser.CreateUserRequest) (*xuser.User, error) {
 
 	user, err := u.userRepo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
@@ -46,7 +47,7 @@ func (u *authUsecase) Register(ctx context.Context, req *model.CreateUserRequest
 		return nil, err
 	}
 
-	newUser := &model.User{
+	newUser := &xuser.User{
 		Email:     req.Email,
 		Password:  string(hashedPassword),
 		FullName:  req.FullName,
@@ -149,6 +150,6 @@ func (u *authUsecase) Logout(_ context.Context) error {
 	return nil
 }
 
-func (u *authUsecase) GetInfo(_ context.Context, user *model.User) (*model.User, error) {
+func (u *authUsecase) GetInfo(_ context.Context, user *xuser.User) (*xuser.User, error) {
 	return user, nil
 }
