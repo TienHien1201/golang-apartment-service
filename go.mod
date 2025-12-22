@@ -22,6 +22,8 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/cloudinary/cloudinary-go/v2 v2.14.0 // indirect
+	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 )

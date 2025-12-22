@@ -16,14 +16,15 @@ const (
 )
 
 type Config struct {
-	App      AppConfig
-	Server   ServerConfig
-	Logger   LoggerConfig
-	Database DatabaseConfig
-	Data     DataConfig
-	Ai       AiConfig
-	JWT      JWTConfig
-	Auth     AuthConfig
+	App        AppConfig
+	Server     ServerConfig
+	Logger     LoggerConfig
+	Database   DatabaseConfig
+	Data       DataConfig
+	Ai         AiConfig
+	JWT        JWTConfig
+	Auth       AuthConfig
+	Cloudinary CloudinaryConfig
 }
 
 func LoadConfig(env Environment, configPath string) (*Config, error) {
@@ -108,6 +109,8 @@ func validateConfig(cfg *Config) error {
 	if cfg.Server.HTTP.Port <= 0 {
 		return fmt.Errorf("invalid HTTP port")
 	}
-
+	if cfg.Cloudinary.CloudName == "" {
+		return fmt.Errorf("cloudinary.cloud_name is required")
+	}
 	return nil
 }

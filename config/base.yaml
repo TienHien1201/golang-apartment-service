@@ -57,6 +57,11 @@ jwt:
 
 auth:
   google:
-    client_id: ""
-    client_secret: ""
-    callback_url: ""
+    client_id:
+    client_secret:
+    callback_url:
+
+cloudinary:
+  cloud_name:
+  api_key:
+  api_secret:

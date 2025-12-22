@@ -16,4 +16,6 @@ type UserUsecase interface {
 	DeleteUsersCreatedBefore(ctx context.Context, days time.Time) error
 	UploadLocal(ctx context.Context, req *xuser.UploadAvatarLocalRequest) error
 	ProcessUploadLocal(ctx context.Context, req *xuser.UploadAvatarLocalInput) error
+	UploadCloud(ctx context.Context, req *xuser.UploadAvatarCloudRequest) error
+	ProcessUploadCloud(ctx context.Context, req *xuser.UploadAvatarCloudInput) error
 }

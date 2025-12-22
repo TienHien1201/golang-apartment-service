@@ -60,6 +60,7 @@ func (h *handler) registerUserRoutes(e *echo.Group) {
 		users.DELETE("/:id", h.user.User().Delete)
 		users.GET("", h.user.User().List, h.authMiddleware.Protect)
 		users.POST("/upload-local", h.user.User().UploadLocal, h.authMiddleware.Protect)
+		users.POST("/upload-cloud", h.user.User().UploadCloud, h.authMiddleware.Protect)
 	}
 }
 

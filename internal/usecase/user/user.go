@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"net/http"
 	"path/filepath"
 	"time"
 
@@ -146,7 +147,7 @@ func (u *userUsecase) UploadLocal(
 	err := u.queue.PublishMessage(
 		ctx,
 		consts.UploadUserAvatarJobType,
-		&xuser.UploadAvatarQueuePayload{
+		&xuser.UploadAvatarLocalQueuePayload{
 			UserID: req.UserID,
 			File:   req.File,
 		},
@@ -183,6 +184,85 @@ func (u *userUsecase) ProcessUploadLocal(
 	if oldAvatar != "" {
 		oldPath := filepath.Join("attachments/images/avatar", oldAvatar)
 		_ = u.fileService.Delete(oldPath)
+	}
+
+	return nil
+}
+
+func (u *userUsecase) UploadCloud(
+	ctx context.Context,
+	req *xuser.UploadAvatarCloudRequest,
+) error {
+
+	if req.File == nil {
+		return xhttp.NewAppError(
+			"ERR_FILE_NOT_FOUND",
+			"avatar",
+			"File is required",
+			http.StatusBadRequest,
+		)
+	}
+
+	user, err := u.userRepo.GetUserByID(ctx, req.UserID)
+	if err != nil {
+		return err
+	}
+
+	if err := u.queue.PublishMessage(
+		ctx,
+		consts.UploadAvatarCloudJobType,
+		&xuser.UploadAvatarCloudQueuePayload{
+			UserID:    uint(user.ID),
+			File:      req.File,
+			OldAvatar: user.Avatar,
+		},
+	); err != nil {
+		u.logger.Error(
+			"Publish upload cloud avatar job failed",
+			xlogger.Error(err),
+			xlogger.Uint("user_id", uint(user.ID)),
+		)
+		return err
+	}
+
+	u.logger.Info(
+		"Upload avatar cloud job published",
+		xlogger.Uint("user_id", uint(user.ID)),
+	)
+
+	return nil
+}
+func (u *userUsecase) ProcessUploadCloud(
+	ctx context.Context,
+	req *xuser.UploadAvatarCloudInput,
+) error {
+
+	user, err := u.userRepo.GetUserByID(ctx, req.UserID)
+	if err != nil {
+		return err
+	}
+
+	oldAvatar := user.Avatar
+	user.Avatar = req.SecureURL
+
+	if _, err := u.userRepo.UpdateUser(ctx, user); err != nil {
+		return err
+	}
+
+	if oldAvatar != "" {
+		if err := u.queue.PublishMessage(
+			ctx,
+			consts.DeleteCloudinaryAssetJobType,
+			&xuser.DeleteCloudAssetPayload{
+				PublicID: oldAvatar,
+			},
+		); err != nil {
+			u.logger.Warn(
+				"Publish delete old cloud avatar job failed",
+				xlogger.Error(err),
+				xlogger.String("public_id", oldAvatar),
+			)
+		}
 	}
 
 	return nil

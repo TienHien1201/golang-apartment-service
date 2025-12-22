@@ -11,6 +11,7 @@ import (
 	auth2 "thomas.vn/apartment_service/internal/usecase/auth"
 	"thomas.vn/apartment_service/internal/usecase/user"
 	"thomas.vn/apartment_service/pkg/auth"
+	xcloudinary "thomas.vn/apartment_service/pkg/cloudinary"
 	xfile "thomas.vn/apartment_service/pkg/file"
 	xhttp "thomas.vn/apartment_service/pkg/http"
 	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
@@ -72,6 +73,12 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		cfg.Auth.Google.CallbackURL,
 	)
 
+	cld, err := xcloudinary.NewCloudinary(cfg.Cloudinary)
+	if err != nil {
+		logger.Error("failed to init cloudinary", xlogger.Error(err))
+		return nil, nil, err
+	}
+
 	// === REPOSITORIES ===
 	userRepo := repository.NewUserRepository(logger, mysqlClient.DB)
 	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
@@ -105,8 +112,11 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 
 	//========= Create job ==============
 	mailJob := queuejobs.NewMailJob(logger, mailUC)
-	upLoadAvatarJob := queuejobs.NewUploadUserAvatarJob(logger, fileSvc, userUC)
-	inMemoryQueue.RegisterJobs([]xqueue.Job{mailJob, upLoadAvatarJob})
+	uploadLocalAvatarJob := queuejobs.NewUploadUserAvatarJob(logger, fileSvc, userUC)
+	uploadCloudAvatarJob := queuejobs.NewUploadAvatarCloudJob(logger, cld, userUC)
+	deleteCloudAssetJob := queuejobs.NewDeleteCloudinaryAssetJob(logger, cld)
+	inMemoryQueue.RegisterJobs([]xqueue.Job{mailJob, uploadLocalAvatarJob, uploadCloudAvatarJob, deleteCloudAssetJob})
+
 	if err := inMemoryQueue.Start(); err != nil {
 		return nil, nil, err
 	}

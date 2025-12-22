@@ -39,7 +39,7 @@ func (j *UploadUserAvatarJob) Type() xqueue.MessageType {
 }
 
 func (j *UploadUserAvatarJob) Handle(ctx context.Context, payload interface{}) error {
-	req, ok := payload.(*xuser.UploadAvatarQueuePayload)
+	req, ok := payload.(*xuser.UploadAvatarLocalQueuePayload)
 	if !ok {
 		return fmt.Errorf("invalid payload")
 	}

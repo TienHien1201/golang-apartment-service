@@ -1,6 +1,8 @@
 package xuser
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	user2 "thomas.vn/apartment_service/internal/domain/usecase"
@@ -161,7 +163,6 @@ func (h *UserHandler) List(c echo.Context) error {
 
 func (h *UserHandler) UploadLocal(c echo.Context) error {
 	ctx := c.Request().Context()
-
 	user, err := xcontext.MustGetUser(c)
 	if err != nil {
 		return xhttp.BadRequestResponse(c, err)
@@ -169,7 +170,12 @@ func (h *UserHandler) UploadLocal(c echo.Context) error {
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
-		return xhttp.BadRequestResponse(c, err)
+		return xhttp.NewAppError(
+			"ERR_FILE_NOT_FOUND",
+			"avatar",
+			"Avatar file is required",
+			http.StatusBadRequest,
+		)
 	}
 	if err := xhttp.ValidateImageFile(file, 5<<20); err != nil {
 		return xhttp.AppErrorResponse(c, err)
@@ -184,5 +190,44 @@ func (h *UserHandler) UploadLocal(c echo.Context) error {
 	}
 	return xhttp.SuccessResponse(c, map[string]string{
 		"message": "Upload avatar local success",
+	})
+}
+
+func (h *UserHandler) UploadCloud(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	user, err := xcontext.MustGetUser(c)
+	if err != nil {
+		return xhttp.BadRequestResponse(c, err)
+	}
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		return xhttp.NewAppError(
+			"ERR_FILE_NOT_FOUND",
+			"avatar",
+			"Avatar file is required",
+			http.StatusBadRequest,
+		)
+	}
+
+	if err := xhttp.ValidateImageFile(file, 5<<20); err != nil {
+		return xhttp.AppErrorResponse(c, err)
+	}
+
+	if err := h.userUC.UploadCloud(ctx, &xuser.UploadAvatarCloudRequest{
+		UserID: uint(user.ID),
+		File:   file,
+	}); err != nil {
+		h.logger.Error(
+			"Upload cloud avatar failed",
+			xlogger.Error(err),
+			xlogger.Uint("user_id", uint(user.ID)),
+		)
+		return xhttp.AppErrorResponse(c, err)
+	}
+
+	return xhttp.SuccessResponse(c, map[string]string{
+		"message": "Avatar upload cloudinary is being processed",
 	})
 }
