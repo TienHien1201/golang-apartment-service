@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"net/http"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -37,6 +38,18 @@ var (
 		"lte":      simpleErrorMessage("%s must be less than or equal to %s"),
 		"date":     simpleErrorMessage("%s must be a valid date format: YYYY-MM-DD"),
 		"filetype": simpleErrorMessage("%s must be a valid file type. Allowed types: jpg, jpeg, png, gif, pdf, doc, docx"),
+	}
+	allowedImageExt = map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
+	}
+
+	allowedImageMime = map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/gif":  true,
 	}
 )
 
@@ -348,4 +361,46 @@ func ReadAndValidateFormRequest(c echo.Context, req interface{}, maxSize int64) 
 	}
 
 	return nil, nil
+}
+
+func ValidateImageFile(file *multipart.FileHeader, maxSize int64) error {
+	if file == nil {
+		return NewAppError(
+			"ERR_INVALID_IMAGE",
+			"avatar",
+			"Invalid image file",
+			http.StatusBadRequest,
+		)
+	}
+
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if !allowedImageExt[ext] {
+		return NewAppError(
+			"ERR_INVALID_IMAGE_TYPE",
+			"avatar",
+			"Only jpg, jpeg, png, gif files are allowed",
+			http.StatusBadRequest,
+		)
+	}
+
+	contentType := file.Header.Get("Content-Type")
+	if contentType != "" && !allowedImageMime[contentType] {
+		return NewAppError(
+			"ERR_INVALID_IMAGE_MIME",
+			"avatar",
+			"Invalid image content type",
+			http.StatusBadRequest,
+		)
+	}
+
+	if file.Size > maxSize {
+		return NewAppError(
+			"ERR_IMAGE_TOO_LARGE",
+			"avatar",
+			"Image size exceeds limit",
+			http.StatusBadRequest,
+		)
+	}
+
+	return nil
 }

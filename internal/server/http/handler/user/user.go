@@ -161,26 +161,28 @@ func (h *UserHandler) List(c echo.Context) error {
 
 func (h *UserHandler) UploadLocal(c echo.Context) error {
 	ctx := c.Request().Context()
+
 	user, err := xcontext.MustGetUser(c)
 	if err != nil {
-		return err
+		return xhttp.BadRequestResponse(c, err)
 	}
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
 		return xhttp.BadRequestResponse(c, err)
 	}
-
-	err = h.userUC.UploadLocal(ctx, &xuser.UploadAvatarLocalRequest{
-		UserID: uint(user.ID),
-		File:   file,
-	})
-	if err != nil {
-		h.logger.Error("Upload avatar failed", xlogger.Error(err))
+	if err := xhttp.ValidateImageFile(file, 5<<20); err != nil {
 		return xhttp.AppErrorResponse(c, err)
 	}
 
+	if err := h.userUC.UploadLocal(ctx, &xuser.UploadAvatarLocalRequest{
+		UserID: uint(user.ID),
+		File:   file,
+	}); err != nil {
+		h.logger.Error("Upload local file failed", xlogger.Error(err))
+		return xhttp.AppErrorResponse(c, err)
+	}
 	return xhttp.SuccessResponse(c, map[string]string{
-		"message": "Avatar upload is being processed",
+		"message": "Upload avatar local success",
 	})
 }
