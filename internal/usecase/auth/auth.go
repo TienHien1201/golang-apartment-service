@@ -8,12 +8,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model"
+	xauth "thomas.vn/apartment_service/internal/domain/model/auth"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 	"thomas.vn/apartment_service/pkg/auth"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 	xqueue "thomas.vn/apartment_service/pkg/queue"
+	pkgtotp "thomas.vn/apartment_service/pkg/totp"
 )
 
 type authUsecase struct {
@@ -69,23 +71,37 @@ func (u *authUsecase) Register(ctx context.Context, req *xuser.CreateUserRequest
 	return u.userRepo.CreateUser(ctx, newUser)
 }
 
-func (u *authUsecase) Login(ctx context.Context, email, password string) (string, string, error) {
+func (u *authUsecase) Login(ctx context.Context, email string, password string, totpToken *string) (*xauth.AuthLoginResult, error) {
+
 	user, err := u.userRepo.GetUserByEmail(ctx, email)
-	if err != nil {
-		u.logger.Error("Login Failed - user not found ", xlogger.Error(err))
-		return "", "", err
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("user not found")
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		u.logger.Error("Login Failed - wrong password", xlogger.Error(err))
-		return "", "", err
+
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.Password),
+		[]byte(password),
+	); err != nil {
+		return nil, fmt.Errorf("wrong password")
+	}
+
+	if user.TotpSecret != nil {
+		if totpToken == nil {
+			return &xauth.AuthLoginResult{
+				IsTotp: true,
+			}, nil
+		}
+
+		if !pkgtotp.Verify(*totpToken, *user.TotpSecret) {
+			return nil, fmt.Errorf("invalid totp token")
+		}
 	}
 
 	accessToken, refreshToken, err := u.tokenSvc.CreateTokens(uint(user.ID))
 	if err != nil {
-		u.logger.Error("Login Failed - token creation failed", xlogger.Error(err))
-		return "", "", err
+		return nil, err
 	}
-	u.logger.Info("User login successfully", xlogger.String("email", email), xlogger.String("access_token", accessToken))
+
 	_ = u.queueService.PublishMessage(
 		ctx,
 		consts.MailJobType,
@@ -96,8 +112,12 @@ func (u *authUsecase) Login(ctx context.Context, email, password string) (string
 		},
 	)
 
-	return accessToken, refreshToken, nil
+	return &xauth.AuthLoginResult{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
+
 func (u *authUsecase) RefreshToken(
 	ctx context.Context,
 	accessToken string,
@@ -150,6 +170,11 @@ func (u *authUsecase) Logout(_ context.Context) error {
 	return nil
 }
 
-func (u *authUsecase) GetInfo(_ context.Context, user *xuser.User) (*xuser.User, error) {
-	return user, nil
+func (u *authUsecase) GetInfo(_ context.Context, user *xuser.User) (*xauth.AuthInfoResult, error) {
+
+	return &xauth.AuthInfoResult{
+		ID:     int64(user.ID),
+		Email:  user.Email,
+		IsTotp: user.TotpSecret != nil,
+	}, nil
 }

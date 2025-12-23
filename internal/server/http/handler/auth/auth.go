@@ -2,6 +2,7 @@ package xauth
 
 import (
 	"github.com/labstack/echo/v4"
+	xauth "thomas.vn/apartment_service/internal/domain/model/auth"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/usecase"
 	xhttp "thomas.vn/apartment_service/pkg/http"
@@ -41,29 +42,29 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	return xhttp.CreatedResponse(c, user)
 }
 
-// LOGIN
-type loginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
-}
-
 func (h *AuthHandler) Login(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req loginRequest
 
+	var req xauth.LoginRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
 	}
 
-	accessToken, refreshToken, err := h.authUC.Login(ctx, req.Email, req.Password)
+	result, err := h.authUC.Login(ctx, req.Email, req.Password, req.Token)
 	if err != nil {
 		h.logger.Error("Login failed", xlogger.Error(err))
 		return xhttp.AppErrorResponse(c, err)
 	}
 
+	if result.IsTotp {
+		return xhttp.SuccessResponse(c, map[string]any{
+			"isTotp": true,
+		})
+	}
+
 	return xhttp.SuccessResponse(c, map[string]string{
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
+		"accessToken":  result.AccessToken,
+		"refreshToken": result.RefreshToken,
 	})
 }
 

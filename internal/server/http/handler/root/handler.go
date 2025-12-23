@@ -1,8 +1,10 @@
-package handler
+package root
 
 import (
 	"github.com/labstack/echo/v4"
+	handler2 "thomas.vn/apartment_service/internal/server/http/handler/ai"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
+	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
 	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
@@ -14,12 +16,13 @@ type handler struct {
 	logger               *xlogger.Logger
 	user                 *xuser.Handler
 	auth                 *xAuth.Handler
-	ai                   *AiHandler
+	ai                   *handler2.Handler
 	authMiddleware       *xmiddleware.AuthMiddleware
 	permissionMiddleware *xmiddleware.PermissionMiddleware
+	totp                 *xtotp.Handler
 }
 
-func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *AiHandler, authMiddleware *xmiddleware.AuthMiddleware, permissionMiddleware *xmiddleware.PermissionMiddleware) xhttp.Handler {
+func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *handler2.Handler, authMiddleware *xmiddleware.AuthMiddleware, permissionMiddleware *xmiddleware.PermissionMiddleware, totp *xtotp.Handler) xhttp.Handler {
 	return &handler{
 		logger:               logger,
 		user:                 user,
@@ -27,6 +30,7 @@ func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Han
 		ai:                   ai,
 		authMiddleware:       authMiddleware,
 		permissionMiddleware: permissionMiddleware,
+		totp:                 totp,
 	}
 }
 
@@ -48,6 +52,9 @@ func (h *handler) RegisterRoutes(e *echo.Echo) {
 
 	//	Auth routes
 	h.registerAuthRoutes(api)
+
+	//	Totp routes
+	h.registerTotpRoutes(api)
 
 }
 
@@ -82,5 +89,15 @@ func (h *handler) registerAuthRoutes(e *echo.Group) {
 		auth.POST("/refresh-token", h.auth.Auth().Refresh)
 		auth.GET("/google", h.auth.Auth().GoogleLogin)
 		auth.GET("/google/callback", h.auth.Auth().GoogleCallback)
+	}
+}
+
+func (h *handler) registerTotpRoutes(e *echo.Group) {
+	tOtp := e.Group("/totp")
+	{
+		tOtp.POST("/generate", h.totp.Totp().Generate, h.authMiddleware.Protect)
+		tOtp.POST("/verify", h.totp.Totp().Verify, h.authMiddleware.Protect)
+		tOtp.POST("/generate", h.totp.Totp().Generate, h.authMiddleware.Protect)
+		tOtp.POST("/save", h.totp.Totp().Save, h.authMiddleware.Protect)
 	}
 }

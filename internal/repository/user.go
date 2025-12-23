@@ -140,3 +140,33 @@ func (r *userRepository) ListUsers(ctx context.Context, req *xuser.ListUserReque
 
 	return users, total, nil
 }
+
+func (r *userRepository) UpdateTotpSecret(
+	ctx context.Context,
+	userID int64,
+	secret *string,
+) error {
+	result := r.userTable.
+		WithContext(ctx).
+		Model(&xuser.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"totp_secret": secret,
+			"updated_at":  xutils.GetTimeNow(),
+		})
+
+	if result.Error != nil {
+		r.logger.Error(
+			"Update totp secret failed",
+			xlogger.Int64("user_id", userID),
+			xlogger.Error(result.Error),
+		)
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("update totp secret failed: user not found")
+	}
+
+	return nil
+}
