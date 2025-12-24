@@ -5,6 +5,7 @@ import (
 	"thomas.vn/apartment_service/internal/repository"
 	"thomas.vn/apartment_service/internal/server/http/handler/ai"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
+	"thomas.vn/apartment_service/internal/server/http/handler/chatgroup"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
 	"thomas.vn/apartment_service/internal/server/http/handler/root"
 	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
@@ -14,7 +15,6 @@ import (
 	auth2 "thomas.vn/apartment_service/internal/usecase/auth"
 	"thomas.vn/apartment_service/internal/usecase/totp"
 	"thomas.vn/apartment_service/internal/usecase/user"
-	"thomas.vn/apartment_service/pkg/auth"
 	xcloudinary "thomas.vn/apartment_service/pkg/cloudinary"
 	xfile "thomas.vn/apartment_service/pkg/file"
 	xhttp "thomas.vn/apartment_service/pkg/http"
@@ -23,6 +23,7 @@ import (
 	mail "thomas.vn/apartment_service/pkg/mailer"
 	xgoogle "thomas.vn/apartment_service/pkg/oauth/google"
 	xqueue "thomas.vn/apartment_service/pkg/queue"
+	ws "thomas.vn/apartment_service/pkg/websocket"
 )
 
 type AppContainer struct {
@@ -54,7 +55,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	fileSvc := xfile.NewHTTPFile(httpClient.HTTPClient())
 	aiURLConfig := cfg.Ai
 
-	tokenCfg := auth.Config{AccessSecret: cfg.JWT.AccessSecret, AccessExpire: cfg.JWT.AccessExpire, RefreshSecret: cfg.JWT.RefreshSecret, RefreshExpire: cfg.JWT.RefreshExpire}
+	tokenCfg := config.TokenConfig{AccessSecret: cfg.JWT.AccessSecret, AccessExpire: cfg.JWT.AccessExpire, RefreshSecret: cfg.JWT.RefreshSecret, RefreshExpire: cfg.JWT.RefreshExpire}
 
 	mailer := mail.NewMailer(mail.SMTPConfig{Host: "smtp.gmail.com", Port: "587", User: "phamtienhien08072018@gmail.com", Pass: "gqqrdaxprykasskf"}, "Hien CNTT <tienhien.cntt@gmail.com>")
 	googleOAuth := xgoogle.New(cfg.Auth.Google.ClientID, cfg.Auth.Google.ClientSecret, cfg.Auth.Google.CallbackURL)
@@ -65,26 +66,33 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
 	permissionRepo := repository.NewPermissionRepository(logger, mysqlClient.DB)
 	chatMessageRepo := repository.NewChatMessageRepository(logger, mysqlClient.DB)
-
-	tokenSvc := auth.NewToken(tokenCfg)
+	chatGroupRepo := repository.NewChatGroupRepository(logger, mysqlClient.DB)
+	tokenSvc := usecase.NewToken(tokenCfg)
 
 	// === USECASES ===
 	userUC := user.NewUserUsecase(logger, userRepo, redisCache, fileSvc, inMemoryQueue)
 	chatMessageUC := usecase.NewChatMessageUsecase(logger, chatMessageRepo)
+	chatGroupUc := usecase.NewChatGroupUsecase(logger, chatGroupRepo)
 	authUC := auth2.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
 	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
 	permissionUC := usecase.NewPermissionUsecase(permissionRepo)
 	mailUC := usecase.NewMailUsecase(mailer)
 	totpUc := totp.NewTotpUsecase(logger, userRepo)
+	chatWsUC := usecase.NewChatUcase(logger, chatGroupUc, chatMessageUC)
 
 	// === HANDLERS ===
 	userHandler := xuser.NewHandler(logger, xuser.WithUserUsecase(userUC))
 	chatMessageHandler := chatmessage.NewHandler(logger, chatmessage.WithChatMessageUsecase(chatMessageUC))
+	chatGroupHandler := chatgroup.NewHandler(logger, chatgroup.WithChatGroupUsecase(chatGroupUc))
 	authHandler := xAuth.NewHandler(logger, xAuth.WithGoogleOAuth(googleOAuth), xAuth.WithAuthUsecase(authUC))
 	aiHandler := ai.NewAiHandler(logger, aiUC)
 	authMiddlewareHandler := xmiddleware.NewAuthMiddleware(logger, tokenSvc, userRepo)
 	permissionMiddlewareHandler := xmiddleware.NewPermissionMiddleware(permissionUC)
 	tOtpHandler := xtotp.NewHandler(logger, xtotp.WithTotpUsecase(totpUc))
+
+	hub := ws.NewHub()
+	wsServer := &ws.Server{Hub: hub, ChatUC: chatWsUC, Token: tokenSvc}
+	wsHandler := ws.NewHandler(wsServer)
 
 	// === HTTP ROOT HANDLER ===
 	httpHandler := root.NewHTTPHandler(
@@ -96,6 +104,8 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		permissionMiddlewareHandler,
 		tOtpHandler,
 		chatMessageHandler,
+		chatGroupHandler,
+		wsHandler,
 	)
 
 	//========= Create job ==============

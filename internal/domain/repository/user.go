@@ -12,6 +12,6 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*xuser.User, error)
 	UpdateUser(ctx context.Context, user *xuser.User) (*xuser.User, error)
 	DeleteUser(ctx context.Context, id uint) error
-	ListUsers(ctx context.Context, req *xuser.ListUserRequest) ([]*xuser.User, int64, error)
+	ListUsers(ctx context.Context, req *xuser.ListUserRequest, filters *xuser.UserFilters) ([]*xuser.User, int64, error)
 	UpdateTotpSecret(ctx context.Context, userID int64, secret *string) error
 }

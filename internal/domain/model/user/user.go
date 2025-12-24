@@ -42,12 +42,17 @@ type UpdateUserRequest struct {
 	RoleID   int    `json:"role_id" validate:"omitempty,oneof=1 2" example:"user"`
 	IsActive int    `json:"is_active" validate:"omitempty,oneof=0 1" example:"1"`
 }
+type UserFilters struct {
+	FullName string `json:"full_name"`
+}
 
 type ListUserRequest struct {
 	query.PaginationOptions
 	query.DateRangeOptions
 	query.SortOptions
-	Status int `query:"status" validate:"omitempty,oneof=1 2"`
+
+	IsDeleted int    `query:"is_deleted"`
+	Filters   string `query:"filters"`
 }
 
 type ListUserResponse struct {

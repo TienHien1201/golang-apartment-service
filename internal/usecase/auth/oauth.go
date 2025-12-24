@@ -40,7 +40,7 @@ func (u *authUsecase) GoogleLogin(ctx context.Context, gUser *model.GoogleUser) 
 		}
 	}
 
-	accessToken, refreshToken, err := u.tokenSvc.CreateTokens(uint(user.ID))
+	accessToken, refreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))
 	if err != nil {
 		return "", "", err
 	}

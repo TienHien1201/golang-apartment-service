@@ -4,9 +4,11 @@ import (
 	"github.com/labstack/echo/v4"
 	handler2 "thomas.vn/apartment_service/internal/server/http/handler/ai"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
+	"thomas.vn/apartment_service/internal/server/http/handler/chatgroup"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
 	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
 	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
+	ws "thomas.vn/apartment_service/pkg/websocket"
 
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
 	xhttp "thomas.vn/apartment_service/pkg/http"
@@ -22,9 +24,22 @@ type handler struct {
 	permissionMiddleware *xmiddleware.PermissionMiddleware
 	totp                 *xtotp.Handler
 	chatMessage          *chatmessage.Handler
+	chatGroup            *chatgroup.Handler
+	wsHandler            *ws.Handler
 }
 
-func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *handler2.Handler, authMiddleware *xmiddleware.AuthMiddleware, permissionMiddleware *xmiddleware.PermissionMiddleware, totp *xtotp.Handler, chatMessage *chatmessage.Handler) xhttp.Handler {
+func NewHTTPHandler(
+	logger *xlogger.Logger,
+	user *xuser.Handler,
+	auth *xAuth.Handler,
+	ai *handler2.Handler,
+	authMiddleware *xmiddleware.AuthMiddleware,
+	permissionMiddleware *xmiddleware.PermissionMiddleware,
+	totp *xtotp.Handler,
+	chatMessage *chatmessage.Handler,
+	chatGroup *chatgroup.Handler,
+	wsHandler *ws.Handler,
+) xhttp.Handler {
 	return &handler{
 		logger:               logger,
 		user:                 user,
@@ -34,6 +49,8 @@ func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Han
 		authMiddleware:       authMiddleware,
 		permissionMiddleware: permissionMiddleware,
 		totp:                 totp,
+		chatGroup:            chatGroup,
+		wsHandler:            wsHandler,
 	}
 }
 
@@ -59,8 +76,14 @@ func (h *handler) RegisterRoutes(e *echo.Echo) {
 	//	Totp routes
 	h.registerTotpRoutes(api)
 
-	//	Chatmessage routes
+	//	Chat message routes
 	h.registerChatMessageRoutes(api)
+
+	//	Chat group routes
+	h.registerChatGroupRoutes(api)
+
+	// WebSocket
+	e.GET("/ws", h.wsHandler.Handle())
 
 }
 
@@ -112,5 +135,11 @@ func (h *handler) registerChatMessageRoutes(e *echo.Group) {
 	chat := e.Group("/chat-message")
 	{
 		chat.GET("", h.chatMessage.ChatMessage().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+	}
+}
+func (h *handler) registerChatGroupRoutes(e *echo.Group) {
+	chat := e.Group("/chat-group")
+	{
+		chat.GET("", h.chatGroup.ChatGroup().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }

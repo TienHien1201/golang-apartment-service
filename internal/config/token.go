@@ -1,8 +1,8 @@
-package auth
+package config
 
 import "time"
 
-type Config struct {
+type TokenConfig struct {
 	AccessSecret  string
 	AccessExpire  time.Duration
 	RefreshSecret string

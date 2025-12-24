@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -12,7 +13,7 @@ import (
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/usecase"
-	"thomas.vn/apartment_service/pkg/auth"
+	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 	xqueue "thomas.vn/apartment_service/pkg/queue"
 	pkgtotp "thomas.vn/apartment_service/pkg/totp"
@@ -21,15 +22,15 @@ import (
 type authUsecase struct {
 	logger       *xlogger.Logger
 	userRepo     repository.UserRepository
-	tokenSvc     *auth.Token
+	tokenUc      usecase.TokenUsecase
 	queueService xqueue.QueueService
 }
 
-func NewAuthUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, token *auth.Token, queueService xqueue.QueueService) usecase.AuthUsecase {
+func NewAuthUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, tokenUc usecase.TokenUsecase, queueService xqueue.QueueService) usecase.AuthUsecase {
 	return &authUsecase{
 		logger:       logger,
 		userRepo:     userRepo,
-		tokenSvc:     token,
+		tokenUc:      tokenUc,
 		queueService: queueService,
 	}
 }
@@ -75,14 +76,24 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 
 	user, err := u.userRepo.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
-		return nil, fmt.Errorf("user not found")
+		return nil, xhttp.NewAppError(
+			"ERR_USER_NOT_FOUND",
+			"",
+			"User not found",
+			http.StatusBadRequest,
+		)
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(user.Password),
 		[]byte(password),
 	); err != nil {
-		return nil, fmt.Errorf("wrong password")
+		return nil, xhttp.NewAppError(
+			"ERR_WRONG_PASSWORD",
+			"password",
+			"wrong password",
+			http.StatusBadRequest,
+		)
 	}
 
 	if user.TotpSecret != nil {
@@ -93,11 +104,16 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 		}
 
 		if !pkgtotp.Verify(*totpToken, *user.TotpSecret) {
-			return nil, fmt.Errorf("invalid totp token")
+			return nil, xhttp.NewAppError(
+				"ERR_TOTP",
+				"",
+				"invalid totp token",
+				http.StatusBadRequest,
+			)
 		}
 	}
 
-	accessToken, refreshToken, err := u.tokenSvc.CreateTokens(uint(user.ID))
+	accessToken, refreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))
 	if err != nil {
 		return nil, err
 	}
@@ -124,13 +140,13 @@ func (u *authUsecase) RefreshToken(
 	refreshToken string,
 ) (string, string, error) {
 
-	refreshClaims, err := u.tokenSvc.VerifyRefreshToken(refreshToken)
+	refreshClaims, err := u.tokenUc.VerifyRefreshToken(refreshToken)
 	if err != nil {
 		u.logger.Error("Invalid refresh token", xlogger.Error(err))
 		return "", "", err
 	}
 
-	accessClaims, err := u.tokenSvc.VerifyAccessToken(accessToken)
+	accessClaims, err := u.tokenUc.VerifyAccessToken(accessToken)
 	if err != nil {
 		u.logger.Error("Invalid access token", xlogger.Error(err))
 		return "", "", err
@@ -151,7 +167,7 @@ func (u *authUsecase) RefreshToken(
 		return "", "", fmt.Errorf("user does not exist")
 	}
 
-	newAccessToken, newRefreshToken, err := u.tokenSvc.CreateTokens(uint(user.ID))
+	newAccessToken, newRefreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))
 	if err != nil {
 		u.logger.Error("Failed to generate new access token", xlogger.Error(err))
 		return "", "", err

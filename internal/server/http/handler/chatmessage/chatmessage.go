@@ -1,6 +1,8 @@
 package chatmessage
 
 import (
+	"encoding/json"
+
 	"github.com/labstack/echo/v4"
 	"thomas.vn/apartment_service/internal/domain/model/chatmessage"
 	"thomas.vn/apartment_service/internal/domain/usecase"
@@ -19,11 +21,27 @@ func NewChatMessageHandler(logger *xlogger.Logger, chatMessageUc usecase.ChatMes
 		chatMessageUc: chatMessageUc,
 	}
 }
-
 func (h *ChatMessagesHandler) List(c echo.Context) error {
 	var req chatmessage.ListChatMessageRequest
+
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
+	}
+
+	// 👉 Parse filters JSON thủ công
+	rawFilters := c.QueryParam("filters")
+	if rawFilters != "" {
+		var f struct {
+			ChatGroupID int `json:"chatGroupID"`
+		}
+		if err := json.Unmarshal([]byte(rawFilters), &f); err != nil {
+			return xhttp.BadRequestResponse(c, "filters must be valid JSON")
+		}
+		req.ChatGroupID = f.ChatGroupID
+	}
+
+	if req.ChatGroupID == 0 {
+		return xhttp.BadRequestResponse(c, "ChatGroupID is required")
 	}
 
 	res, total, err := h.chatMessageUc.ListChatMessages(c.Request().Context(), &req)

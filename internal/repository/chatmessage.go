@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 	"thomas.vn/apartment_service/internal/domain/model/chatmessage"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xutils "thomas.vn/apartment_service/pkg/utils"
 )
 
 type chatMessageRepository struct {
@@ -21,49 +23,79 @@ func NewChatMessageRepository(logger *xlogger.Logger, db *gorm.DB) repository.Ch
 	}
 
 }
+func (r *chatMessageRepository) ListChatMessages(
+	ctx context.Context,
+	req *chatmessage.ListChatMessageRequest,
+) ([]*chatmessage.Response, int64, error) {
 
-func (r *chatMessageRepository) ListChatMessages(ctx context.Context, req *chatmessage.ListChatMessageRequest) ([]*chatmessage.ChatMessage, int64, error) {
-	var chatMessages []*chatmessage.ChatMessage
+	var rows []*chatmessage.Row
 	var total int64
 
-	query := r.chatMessageTable.
-		WithContext(ctx).
-		Model(&chatmessage.ChatMessage{})
+	db := r.chatMessageTable.WithContext(ctx).
+		Table("chat_messages cm").
+		Joins("JOIN users u ON u.id = cm.user_id_sender").
+		Select(`
+			cm.id,
+			cm.chat_group_id,
+			cm.message_text,
+			cm.created_at,
+			u.id AS user_id,
+			u.full_name,
+			u.avatar,
+			u.role_id
+		`)
 
-	// Apply filters
-	if req.IsDeleted != 0 {
-		query = query.Where("is_deleted = ?", req.IsDeleted)
-	}
-	if req.FromDate != "" {
-		query = query.Where(req.RangeBy+" >= ?", req.FromDate+" 00:00:00")
-	}
-	if req.ToDate != "" {
-		query = query.Where(req.RangeBy+" <= ?", req.ToDate+" 23:59:59")
+	if req.ChatGroupID != 0 {
+		db = db.Where("cm.chat_group_id = ?", req.ChatGroupID)
 	}
 
-	// Get total count if not exclude
 	if !req.ExcludeTotal {
-		if err := query.Count(&total).Error; err != nil {
-			r.logger.Error("Count chatmessage failed", xlogger.Error(err))
-			return nil, 0, err
-		}
+		db.Count(&total)
 	}
 
-	// Apply pagination
 	if req.Page > 0 && req.Limit > 0 {
-		query = query.Offset((req.Page - 1) * req.Limit).Limit(req.Limit)
+		db = db.Offset((req.Page - 1) * req.Limit).Limit(req.Limit)
 	}
 
-	// Apply sorting
 	if req.SortBy != "" && req.OrderBy != "" {
-		query = query.Order(req.SortBy + " " + req.OrderBy)
+		db = db.Order("cm." + req.SortBy + " " + req.OrderBy)
 	}
 
-	// Execute query
-	if err := query.Find(&chatMessages).Error; err != nil {
-		r.logger.Error("List chatmessage failed", xlogger.Error(err))
+	if err := db.Scan(&rows).Error; err != nil {
 		return nil, 0, err
 	}
 
-	return chatMessages, total, nil
+	res := make([]*chatmessage.Response, 0, len(rows))
+	for _, r := range rows {
+		res = append(res, &chatmessage.Response{
+			ID:          r.ID,
+			ChatGroupID: r.ChatGroupID,
+			MessageText: r.MessageText,
+			CreatedAt:   r.CreatedAt,
+			Sender: chatmessage.Sender{
+				ID:       r.UserID,
+				FullName: r.FullName,
+				Avatar:   r.Avatar,
+				RoleID:   r.RoleID,
+			},
+		})
+	}
+
+	return res, total, nil
+}
+
+func (r *chatMessageRepository) CreateChatMessage(ctx context.Context, chatMessage *chatmessage.ChatMessage) (*chatmessage.ChatMessage, error) {
+	chatMessage.CreatedAt = xutils.GetTimeNow()
+	chatMessage.UpdatedAt = xutils.GetTimeNow()
+
+	result := r.chatMessageTable.WithContext(ctx).Create(chatMessage)
+	if result.Error != nil {
+		r.logger.Error("Create Chat group failed", xlogger.Error(result.Error))
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("Create Chat group failed")
+	}
+
+	return chatMessage, nil
 }

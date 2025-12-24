@@ -10,5 +10,6 @@ type ChatMessageRepository interface {
 	ListChatMessages(
 		ctx context.Context,
 		req *chatmessage.ListChatMessageRequest,
-	) ([]*chatmessage.ChatMessage, int64, error)
+	) ([]*chatmessage.Response, int64, error)
+	CreateChatMessage(ctx context.Context, chatMessage *chatmessage.ChatMessage) (*chatmessage.ChatMessage, error)
 }

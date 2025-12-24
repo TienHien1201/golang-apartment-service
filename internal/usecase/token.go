@@ -1,9 +1,11 @@
-package auth
+package usecase
 
 import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"thomas.vn/apartment_service/internal/config"
+	"thomas.vn/apartment_service/internal/domain/model/token"
 )
 
 type Token struct {
@@ -13,12 +15,7 @@ type Token struct {
 	refreshExpire time.Duration
 }
 
-type Claims struct {
-	UserID uint `json:"user_id"`
-	jwt.RegisteredClaims
-}
-
-func NewToken(cfg Config) *Token {
+func NewToken(cfg config.TokenConfig) *Token {
 	return &Token{
 		accessSecret:  cfg.AccessSecret,
 		accessExpire:  cfg.AccessExpire,
@@ -28,27 +25,27 @@ func NewToken(cfg Config) *Token {
 }
 
 func (s *Token) CreateTokens(userID uint) (accessToken, refreshToken string, err error) {
-	accessToken, err = s.generateToken(userID, s.accessSecret, s.accessExpire)
+	accessToken, err = s.GenerateToken(userID, s.accessSecret, s.accessExpire)
 	if err != nil {
 		return "", "", err
 	}
-	refreshToken, err = s.generateToken(userID, s.refreshSecret, s.refreshExpire)
+	refreshToken, err = s.GenerateToken(userID, s.refreshSecret, s.refreshExpire)
 	if err != nil {
 		return "", "", err
 	}
 	return accessToken, refreshToken, nil
 }
 
-func (s *Token) VerifyRefreshToken(tokenStr string) (*Claims, error) {
-	return s.verifyToken(tokenStr, s.refreshSecret)
+func (s *Token) VerifyRefreshToken(tokenStr string) (*token.Claims, error) {
+	return s.VerifyToken(tokenStr, s.refreshSecret)
 }
 
-func (s *Token) VerifyAccessToken(tokenStr string) (*Claims, error) {
-	return s.verifyToken(tokenStr, s.accessSecret)
+func (s *Token) VerifyAccessToken(tokenStr string) (*token.Claims, error) {
+	return s.VerifyToken(tokenStr, s.accessSecret)
 }
 
-func (s *Token) generateToken(userID uint, secret string, expire time.Duration) (string, error) {
-	claims := &Claims{
+func (s *Token) GenerateToken(userID uint, secret string, expire time.Duration) (string, error) {
+	claims := &token.Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expire)),
@@ -60,8 +57,8 @@ func (s *Token) generateToken(userID uint, secret string, expire time.Duration) 
 	return token.SignedString([]byte(secret))
 }
 
-func (s *Token) verifyToken(tokenStr, secret string) (*Claims, error) {
-	claims := &Claims{}
+func (s *Token) VerifyToken(tokenStr, secret string) (*token.Claims, error) {
+	claims := &token.Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(_ *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})

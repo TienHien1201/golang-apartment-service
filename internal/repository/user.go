@@ -97,15 +97,17 @@ func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (r *userRepository) ListUsers(ctx context.Context, req *xuser.ListUserRequest) ([]*xuser.User, int64, error) {
+func (r *userRepository) ListUsers(ctx context.Context, req *xuser.ListUserRequest, filters *xuser.UserFilters) ([]*xuser.User, int64, error) {
 	var users []*xuser.User
 	var total int64
 
 	query := r.userTable.WithContext(ctx)
 
-	// Apply filters
-	if req.Status != 0 {
-		query = query.Where("status = ?", req.Status)
+	if req.IsDeleted != 0 {
+		query = query.Where("is_deleted = ?", req.IsDeleted)
+	}
+	if filters.FullName != "" {
+		query = query.Where("full_name LIKE ?", "%"+filters.FullName+"%")
 	}
 	if req.FromDate != "" {
 		query = query.Where(req.RangeBy+" >= ?", req.FromDate+" 00:00:00")

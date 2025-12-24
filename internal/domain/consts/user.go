@@ -5,4 +5,5 @@ const (
 	UserStatusActive = 1
 	// UserStatusInactive is the status for inactive users
 	UserStatusInactive = 0
+	NotDeleted         = 0
 )

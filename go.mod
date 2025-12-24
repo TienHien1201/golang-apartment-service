@@ -25,6 +25,7 @@ require (
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cloudinary/cloudinary-go/v2 v2.14.0 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect

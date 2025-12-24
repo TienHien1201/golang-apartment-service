@@ -119,14 +119,8 @@ func (u *userUsecase) DeleteUser(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (u *userUsecase) ListUsers(ctx context.Context, req *xuser.ListUserRequest) ([]*xuser.User, int64, error) {
-	users, total, err := u.userRepo.ListUsers(ctx, req)
-	if err != nil {
-		u.logger.Error("Failed to list user", xlogger.Error(err))
-		return nil, 0, err
-	}
-
-	return users, total, nil
+func (u *userUsecase) ListUsers(ctx context.Context, req *xuser.ListUserRequest, filters *xuser.UserFilters) ([]*xuser.User, int64, error) {
+	return u.userRepo.ListUsers(ctx, req, filters)
 }
 
 func (u *userUsecase) DeleteUsersCreatedBefore(_ context.Context, days time.Time) error {

@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
+	"thomas.vn/apartment_service/internal/domain/usecase"
 
 	"thomas.vn/apartment_service/internal/domain/repository"
-	"thomas.vn/apartment_service/pkg/auth"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
@@ -17,18 +17,18 @@ const UserContextKey contextKey = "user"
 
 type AuthMiddleware struct {
 	logger   *xlogger.Logger
-	tokenSvc auth.TokenVerifier
+	tokenUc  usecase.TokenUsecase
 	userRepo repository.UserRepository
 }
 
 func NewAuthMiddleware(
 	logger *xlogger.Logger,
-	tokenSvc auth.TokenVerifier,
+	tokenUsecase usecase.TokenUsecase,
 	userRepo repository.UserRepository,
 ) *AuthMiddleware {
 	return &AuthMiddleware{
 		logger:   logger,
-		tokenSvc: tokenSvc,
+		tokenUc:  tokenUsecase,
 		userRepo: userRepo,
 	}
 }
@@ -50,7 +50,7 @@ func (m *AuthMiddleware) Protect(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Not Access Token")
 		}
 
-		claims, err := m.tokenSvc.VerifyAccessToken(accessToken)
+		claims, err := m.tokenUc.VerifyAccessToken(accessToken)
 		if err != nil {
 			m.logger.Warn("Verify access token failed", xlogger.Error(err))
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid access token")

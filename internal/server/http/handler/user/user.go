@@ -1,7 +1,10 @@
 package xuser
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/labstack/echo/v4"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
@@ -152,12 +155,28 @@ func (h *UserHandler) List(c echo.Context) error {
 		return xhttp.BadRequestResponse(c, err)
 	}
 
-	res, total, err := h.userUC.ListUsers(c.Request().Context(), &req)
-	if err != nil {
-		h.logger.Error("List users failed", xlogger.Error(err))
-		return xhttp.AppErrorResponse(c, err)
+	var filters xuser.UserFilters
+
+	if req.Filters != "" {
+		decoded, err := url.QueryUnescape(req.Filters)
+		if err != nil {
+			return xhttp.BadRequestResponse(c, err)
+		}
+
+		if err := json.Unmarshal([]byte(decoded), &filters); err != nil {
+			return xhttp.BadRequestResponse(c, err)
+		}
 	}
 
+	res, total, err := h.userUC.ListUsers(
+		c.Request().Context(),
+		&req,
+		&filters,
+	)
+	if err != nil {
+		return xhttp.AppErrorResponse(c, err)
+	}
+	fmt.Printf("RAW filters = %q\n", req.Filters)
 	return xhttp.PaginationListResponse(c, &req.PaginationOptions, res, total)
 }
 

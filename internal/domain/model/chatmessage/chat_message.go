@@ -22,12 +22,41 @@ type ListChatMessageRequest struct {
 	query.PaginationOptions
 	query.DateRangeOptions
 	query.SortOptions
-	IsDeleted int `query:"is_deleted" validate:"omitempty,oneof=0 1"`
+
+	ChatGroupID int `json:"-" query:"-"`
 }
 
-type ListChatMessageResponse struct {
-	Rows  []*ChatMessage `json:"rows"`
-	Total int64          `json:"total,omitempty"`
+type CreateChatMessageRequest struct {
+	ChatGroupID  int    `json:"chat_group_id"`
+	UserIDSender int    `json:"user_id_sender"`
+	MessageText  string `json:"message_text"`
+}
+
+type Response struct {
+	ID          int       `json:"id"`
+	ChatGroupID int       `json:"chat_group_id"`
+	MessageText string    `json:"message_text"`
+	CreatedAt   time.Time `json:"created_at"`
+	Sender      Sender    `json:"sender"`
+}
+
+type Sender struct {
+	ID       int    `json:"id"`
+	FullName string `json:"full_name"`
+	Avatar   string `json:"avatar"`
+	RoleID   int    `json:"role_id"`
+}
+
+type Row struct {
+	ID          int
+	ChatGroupID int
+	MessageText string
+	CreatedAt   time.Time
+
+	UserID   int
+	FullName string
+	Avatar   string
+	RoleID   int
 }
 
 func (ChatMessage) TableName() string {
