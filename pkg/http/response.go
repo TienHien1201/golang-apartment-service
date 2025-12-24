@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"thomas.vn/apartment_service/pkg/query"
 )
 
 func DataResponse(c echo.Context, statusCode int, data interface{}) error {
@@ -85,4 +86,30 @@ func OldBadRequestResponse(c echo.Context, data interface{}) error {
 
 func OldInternalErrorResponse(c echo.Context) error {
 	return OldErrorResponse(c, "Internal Server Error", 500, "Something went wrong")
+}
+
+func PaginationListResponse(c echo.Context, req *query.PaginationOptions, items interface{}, total int64) error {
+
+	page := req.Page
+	limit := req.Limit
+
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	var totalPage int64 = 1
+	if !req.ExcludeTotal && limit > 0 {
+		totalPage = (total + int64(limit) - 1) / int64(limit)
+	}
+
+	return DataResponse(c, http.StatusOK, &PaginationResponse{
+		Page:      page,
+		PageSize:  limit,
+		TotalItem: total,
+		TotalPage: totalPage,
+		Items:     items,
+	})
 }

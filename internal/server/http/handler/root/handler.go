@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	handler2 "thomas.vn/apartment_service/internal/server/http/handler/ai"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
+	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
 	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
 	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 
@@ -20,12 +21,14 @@ type handler struct {
 	authMiddleware       *xmiddleware.AuthMiddleware
 	permissionMiddleware *xmiddleware.PermissionMiddleware
 	totp                 *xtotp.Handler
+	chatMessage          *chatmessage.Handler
 }
 
-func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *handler2.Handler, authMiddleware *xmiddleware.AuthMiddleware, permissionMiddleware *xmiddleware.PermissionMiddleware, totp *xtotp.Handler) xhttp.Handler {
+func NewHTTPHandler(logger *xlogger.Logger, user *xuser.Handler, auth *xAuth.Handler, ai *handler2.Handler, authMiddleware *xmiddleware.AuthMiddleware, permissionMiddleware *xmiddleware.PermissionMiddleware, totp *xtotp.Handler, chatMessage *chatmessage.Handler) xhttp.Handler {
 	return &handler{
 		logger:               logger,
 		user:                 user,
+		chatMessage:          chatMessage,
 		auth:                 auth,
 		ai:                   ai,
 		authMiddleware:       authMiddleware,
@@ -55,6 +58,9 @@ func (h *handler) RegisterRoutes(e *echo.Echo) {
 
 	//	Totp routes
 	h.registerTotpRoutes(api)
+
+	//	Chatmessage routes
+	h.registerChatMessageRoutes(api)
 
 }
 
@@ -99,5 +105,12 @@ func (h *handler) registerTotpRoutes(e *echo.Group) {
 		tOtp.POST("/verify", h.totp.Totp().Verify, h.authMiddleware.Protect)
 		tOtp.POST("/generate", h.totp.Totp().Generate, h.authMiddleware.Protect)
 		tOtp.POST("/save", h.totp.Totp().Save, h.authMiddleware.Protect)
+	}
+}
+
+func (h *handler) registerChatMessageRoutes(e *echo.Group) {
+	chat := e.Group("/chat-message")
+	{
+		chat.GET("", h.chatMessage.ChatMessage().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }

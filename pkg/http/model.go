@@ -71,3 +71,11 @@ type SortOptions struct {
 	SortBy  string `query:"sort_by" default:"created_at" validate:"omitempty,oneof=created_at updated_at"`
 	OrderBy string `query:"order_by" default:"desc" validate:"omitempty,oneof=asc desc"`
 }
+
+type PaginationResponse struct {
+	Page      int         `json:"page"`
+	PageSize  int         `json:"pageSize"`
+	TotalItem int64       `json:"totalItem"`
+	TotalPage int64       `json:"totalPage"`
+	Items     interface{} `json:"items"`
+}

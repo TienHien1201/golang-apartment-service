@@ -158,7 +158,7 @@ func (h *UserHandler) List(c echo.Context) error {
 		return xhttp.AppErrorResponse(c, err)
 	}
 
-	return xhttp.ListResponse(c, res, total)
+	return xhttp.PaginationListResponse(c, &req.PaginationOptions, res, total)
 }
 
 func (h *UserHandler) UploadLocal(c echo.Context) error {

@@ -5,6 +5,7 @@ import (
 	"thomas.vn/apartment_service/internal/repository"
 	"thomas.vn/apartment_service/internal/server/http/handler/ai"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
+	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
 	"thomas.vn/apartment_service/internal/server/http/handler/root"
 	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
@@ -53,12 +54,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	fileSvc := xfile.NewHTTPFile(httpClient.HTTPClient())
 	aiURLConfig := cfg.Ai
 
-	tokenCfg := auth.Config{
-		AccessSecret:  cfg.JWT.AccessSecret,
-		AccessExpire:  cfg.JWT.AccessExpire,
-		RefreshSecret: cfg.JWT.RefreshSecret,
-		RefreshExpire: cfg.JWT.RefreshExpire,
-	}
+	tokenCfg := auth.Config{AccessSecret: cfg.JWT.AccessSecret, AccessExpire: cfg.JWT.AccessExpire, RefreshSecret: cfg.JWT.RefreshSecret, RefreshExpire: cfg.JWT.RefreshExpire}
 
 	mailer := mail.NewMailer(mail.SMTPConfig{Host: "smtp.gmail.com", Port: "587", User: "phamtienhien08072018@gmail.com", Pass: "gqqrdaxprykasskf"}, "Hien CNTT <tienhien.cntt@gmail.com>")
 	googleOAuth := xgoogle.New(cfg.Auth.Google.ClientID, cfg.Auth.Google.ClientSecret, cfg.Auth.Google.CallbackURL)
@@ -68,11 +64,13 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	userRepo := repository.NewUserRepository(logger, mysqlClient.DB)
 	aiRepo := repository.NewAiRepository(logger, httpClient, fileSvc, aiURLConfig.URL)
 	permissionRepo := repository.NewPermissionRepository(logger, mysqlClient.DB)
+	chatMessageRepo := repository.NewChatMessageRepository(logger, mysqlClient.DB)
 
 	tokenSvc := auth.NewToken(tokenCfg)
 
 	// === USECASES ===
 	userUC := user.NewUserUsecase(logger, userRepo, redisCache, fileSvc, inMemoryQueue)
+	chatMessageUC := usecase.NewChatMessageUsecase(logger, chatMessageRepo)
 	authUC := auth2.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
 	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
 	permissionUC := usecase.NewPermissionUsecase(permissionRepo)
@@ -81,6 +79,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 
 	// === HANDLERS ===
 	userHandler := xuser.NewHandler(logger, xuser.WithUserUsecase(userUC))
+	chatMessageHandler := chatmessage.NewHandler(logger, chatmessage.WithChatMessageUsecase(chatMessageUC))
 	authHandler := xAuth.NewHandler(logger, xAuth.WithGoogleOAuth(googleOAuth), xAuth.WithAuthUsecase(authUC))
 	aiHandler := ai.NewAiHandler(logger, aiUC)
 	authMiddlewareHandler := xmiddleware.NewAuthMiddleware(logger, tokenSvc, userRepo)
@@ -96,6 +95,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		authMiddlewareHandler,
 		permissionMiddlewareHandler,
 		tOtpHandler,
+		chatMessageHandler,
 	)
 
 	//========= Create job ==============
