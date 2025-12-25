@@ -8,5 +8,5 @@ import (
 
 type ChatMessageUsecase interface {
 	ListChatMessages(ctx context.Context, req *chatmessage.ListChatMessageRequest) ([]*chatmessage.Response, int64, error)
-	SendMessage(ctx context.Context, req *chatmessage.CreateChatMessageRequest) (*chatmessage.ChatMessage, error)
+	SendMessage(ctx context.Context, req *chatmessage.CreateChatMessageRequest) (*chatmessage.Response, error)
 }

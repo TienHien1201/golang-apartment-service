@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"gorm.io/gorm"
 	"thomas.vn/apartment_service/internal/domain/model/chatmessage"
@@ -84,18 +83,37 @@ func (r *chatMessageRepository) ListChatMessages(
 	return res, total, nil
 }
 
-func (r *chatMessageRepository) CreateChatMessage(ctx context.Context, chatMessage *chatmessage.ChatMessage) (*chatmessage.ChatMessage, error) {
-	chatMessage.CreatedAt = xutils.GetTimeNow()
-	chatMessage.UpdatedAt = xutils.GetTimeNow()
+func (r *chatMessageRepository) CreateChatMessage(ctx context.Context, msg *chatmessage.ChatMessage) (*chatmessage.Row, error) {
 
-	result := r.chatMessageTable.WithContext(ctx).Create(chatMessage)
-	if result.Error != nil {
-		r.logger.Error("Create Chat group failed", xlogger.Error(result.Error))
-		return nil, result.Error
-	}
-	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("Create Chat group failed")
+	now := xutils.GetTimeNow()
+	msg.CreatedAt = now
+	msg.UpdatedAt = now
+
+	if err := r.chatMessageTable.WithContext(ctx).Create(msg).Error; err != nil {
+		r.logger.Error("CreateChatMessage failed", xlogger.Error(err))
+		return nil, err
 	}
 
-	return chatMessage, nil
+	var row chatmessage.Row
+	err := r.chatMessageTable.WithContext(ctx).
+		Table("chat_messages cm").
+		Joins("JOIN users u ON u.id = cm.user_id_sender").
+		Select(`
+			cm.id,
+			cm.chat_group_id,
+			cm.message_text,
+			cm.created_at,
+			u.id AS user_id,
+			u.full_name,
+			u.avatar,
+			u.role_id
+		`).
+		Where("cm.id = ?", msg.ID).
+		Scan(&row).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &row, nil
 }

@@ -37,12 +37,13 @@ func (u *ChatUcase) CreateRoom(ctx context.Context, req *chatgroup.CreateChatGro
 	return group.ID, nil
 }
 
-func (u *ChatUcase) SendMessage(ctx context.Context, request *chatmessage.CreateChatMessageRequest) error {
+func (u *ChatUcase) SendMessage(ctx context.Context, req *chatmessage.CreateChatMessageRequest) (*chatmessage.Response, error) {
 
-	if _, err := u.chatMessageUC.SendMessage(ctx, request); err != nil {
+	resp, err := u.chatMessageUC.SendMessage(ctx, req)
+	if err != nil {
 		u.logger.Error("SendMessage failed", xlogger.Error(err))
-		return err
+		return nil, err
 	}
 
-	return nil
+	return resp, nil
 }

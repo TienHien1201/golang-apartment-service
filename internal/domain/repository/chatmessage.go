@@ -7,9 +7,6 @@ import (
 )
 
 type ChatMessageRepository interface {
-	ListChatMessages(
-		ctx context.Context,
-		req *chatmessage.ListChatMessageRequest,
-	) ([]*chatmessage.Response, int64, error)
-	CreateChatMessage(ctx context.Context, chatMessage *chatmessage.ChatMessage) (*chatmessage.ChatMessage, error)
+	ListChatMessages(ctx context.Context, req *chatmessage.ListChatMessageRequest) ([]*chatmessage.Response, int64, error)
+	CreateChatMessage(ctx context.Context, chatMessage *chatmessage.ChatMessage) (*chatmessage.Row, error)
 }

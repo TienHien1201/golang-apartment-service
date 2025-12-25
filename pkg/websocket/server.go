@@ -3,7 +3,6 @@ package ws
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"golang.org/x/net/websocket"
@@ -42,7 +41,7 @@ func (s *Server) Handle(conn *websocket.Conn) {
 // ================= ROUTER =================
 
 func (s *Server) dispatch(c *Client, msg Message) {
-	fmt.Printf("🟢 Received WS type=%s, payload=%s\n", msg.Type, string(msg.Payload))
+	//fmt.Printf("🟢 Received WS type=%s, payload=%s\n", msg.Type, string(msg.Payload))
 	switch msg.Type {
 	case "AUTH":
 		s.handleAuth(c, msg)
@@ -125,7 +124,6 @@ func (s *Server) handleCreateRoom(c *Client, msg Message) {
 	c.Send <- resp
 }
 func (s *Server) handleSendMessage(c *Client, msg Message) {
-	fmt.Println("📥 handleSendMessage called with payload:", string(msg.Payload))
 	var p struct {
 		Message     string `json:"message"`
 		ChatGroupID int    `json:"chatGroupId"`
@@ -140,7 +138,6 @@ func (s *Server) handleSendMessage(c *Client, msg Message) {
 		return
 	}
 
-	// 👉 ensure client joined room
 	room := p.ChatGroupID
 	if !c.Rooms[room] {
 		s.Hub.Join(room, c)
@@ -153,17 +150,15 @@ func (s *Server) handleSendMessage(c *Client, msg Message) {
 		MessageText:  p.Message,
 	}
 
-	if err := s.ChatUC.SendMessage(context.Background(), req); err != nil {
+	//log.Printf("❌ SEND_MESSAGE invalid payload: %s", string(msg.Payload))
+	resp, err := s.ChatUC.SendMessage(context.Background(), req)
+	if err != nil {
 		return
 	}
 
 	event, _ := json.Marshal(map[string]any{
 		"type": "SEND_MESSAGE",
-		"data": map[string]any{
-			"message_text": p.Message,
-			"userIdSender": claims.UserID,
-			"chatGroupId":  p.ChatGroupID,
-		},
+		"data": resp,
 	})
 
 	s.Hub.Broadcast(room, event)

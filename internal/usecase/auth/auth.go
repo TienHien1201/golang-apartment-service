@@ -189,8 +189,10 @@ func (u *authUsecase) Logout(_ context.Context) error {
 func (u *authUsecase) GetInfo(_ context.Context, user *xuser.User) (*xauth.AuthInfoResult, error) {
 
 	return &xauth.AuthInfoResult{
-		ID:     int64(user.ID),
-		Email:  user.Email,
-		IsTotp: user.TotpSecret != nil,
+		ID:       int64(user.ID),
+		Email:    user.Email,
+		IsTotp:   user.TotpSecret != nil,
+		Avatar:   user.Avatar,
+		FullName: user.FullName,
 	}, nil
 }

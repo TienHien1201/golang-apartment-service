@@ -9,5 +9,5 @@ import (
 
 type ChatUsecase interface {
 	CreateRoom(ctx context.Context, request *chatgroup.CreateChatGroupRequest) (int, error)
-	SendMessage(ctx context.Context, request *chatmessage.CreateChatMessageRequest) error
+	SendMessage(ctx context.Context, req *chatmessage.CreateChatMessageRequest) (*chatmessage.Response, error)
 }

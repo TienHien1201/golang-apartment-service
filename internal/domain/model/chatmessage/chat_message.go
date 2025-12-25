@@ -34,9 +34,9 @@ type CreateChatMessageRequest struct {
 
 type Response struct {
 	ID          int       `json:"id"`
-	ChatGroupID int       `json:"chat_group_id"`
 	MessageText string    `json:"message_text"`
 	CreatedAt   time.Time `json:"created_at"`
+	ChatGroupID int       `json:"chat_group_id"`
 	Sender      Sender    `json:"sender"`
 }
 
@@ -52,6 +52,7 @@ type Row struct {
 	ChatGroupID int
 	MessageText string
 	CreatedAt   time.Time
+	UpdatedAt   time.Time
 
 	UserID   int
 	FullName string

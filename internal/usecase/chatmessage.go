@@ -27,8 +27,9 @@ func (u *chatMessageUsecase) ListChatMessages(ctx context.Context, req *chatmess
 	return u.chatMessageRepository.ListChatMessages(ctx, req)
 }
 
-func (u *chatMessageUsecase) SendMessage(ctx context.Context, req *chatmessage.CreateChatMessageRequest) (*chatmessage.ChatMessage, error) {
+func (u *chatMessageUsecase) SendMessage(ctx context.Context, req *chatmessage.CreateChatMessageRequest) (*chatmessage.Response, error) {
 
+	// validate
 	if req.ChatGroupID == 0 {
 		return nil, fmt.Errorf("chat_group_id is required")
 	}
@@ -39,17 +40,31 @@ func (u *chatMessageUsecase) SendMessage(ctx context.Context, req *chatmessage.C
 		return nil, fmt.Errorf("message_text is required")
 	}
 
+	// create entity
 	entity := &chatmessage.ChatMessage{
 		ChatGroupID:  req.ChatGroupID,
 		UserIDSender: req.UserIDSender,
 		MessageText:  req.MessageText,
 	}
 
-	createdMsg, err := u.chatMessageRepository.CreateChatMessage(ctx, entity)
+	// repo: create + join user
+	row, err := u.chatMessageRepository.CreateChatMessage(ctx, entity)
 	if err != nil {
 		u.logger.Error("SendMessage failed", xlogger.Error(err))
 		return nil, err
 	}
 
-	return createdMsg, nil
+	resp := &chatmessage.Response{
+		ID:          row.ID,
+		MessageText: row.MessageText,
+		CreatedAt:   row.CreatedAt,
+		ChatGroupID: row.ChatGroupID,
+	}
+
+	resp.Sender.ID = row.UserID
+	resp.Sender.FullName = row.FullName
+	resp.Sender.Avatar = row.Avatar
+	resp.Sender.RoleID = row.RoleID
+
+	return resp, nil
 }

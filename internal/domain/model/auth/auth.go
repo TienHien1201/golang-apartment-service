@@ -6,9 +6,11 @@ type LoginRequest struct {
 	Token    *string `json:"token"`
 }
 type AuthInfoResult struct {
-	ID     int64  `json:"id"`
-	Email  string `json:"email"`
-	IsTotp bool   `json:"isTotp"`
+	ID       int64  `json:"id"`
+	Email    string `json:"email"`
+	Avatar   string `json:"avatar"`
+	FullName string `json:"full_name"`
+	IsTotp   bool   `json:"isTotp"`
 }
 
 type AuthLoginResult struct {
