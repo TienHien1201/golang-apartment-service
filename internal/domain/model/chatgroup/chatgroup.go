@@ -7,11 +7,11 @@ import (
 )
 
 type ChatGroup struct {
-	ID            int64      `json:"id"`
-	KeyForChatOne string     `json:"key_for_chat_one"`
+	ID            int        `json:"id"`
+	KeyForChatOne *string    `json:"key_for_chat_one"`
 	Name          string     `json:"name"`
 	OwnerID       int64      `json:"owner_id"`
-	DeleteBy      string     `json:"delete_by"`
+	DeletedBy     int        `json:"deleted_by"`
 	IsDeleted     int        `json:"is_deleted"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`

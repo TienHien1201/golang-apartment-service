@@ -3,17 +3,17 @@ package ws
 import "sync"
 
 type Hub struct {
-	Rooms map[string]map[*Client]bool
+	Rooms map[int]map[*Client]bool
 	Mu    sync.RWMutex
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		Rooms: make(map[string]map[*Client]bool),
+		Rooms: make(map[int]map[*Client]bool),
 	}
 }
 
-func (h *Hub) Join(room string, c *Client) {
+func (h *Hub) Join(room int, c *Client) {
 	h.Mu.Lock()
 	defer h.Mu.Unlock()
 
@@ -23,13 +23,13 @@ func (h *Hub) Join(room string, c *Client) {
 	h.Rooms[room][c] = true
 }
 
-func (h *Hub) Leave(room string, c *Client) {
+func (h *Hub) Leave(room int, c *Client) {
 	h.Mu.Lock()
 	defer h.Mu.Unlock()
 	delete(h.Rooms[room], c)
 }
 
-func (h *Hub) Broadcast(room string, msg []byte) {
+func (h *Hub) Broadcast(room int, msg []byte) {
 	h.Mu.RLock()
 	defer h.Mu.RUnlock()
 

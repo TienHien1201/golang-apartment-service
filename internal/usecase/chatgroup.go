@@ -49,7 +49,7 @@ func (u *ChatGroupUsecase) CreateChatGroup(
 	}
 
 	memberReq := &chatgroup.CreateMemberRequest{
-		ChatGroupID: createdGroup.ID,
+		ChatGroupID: int64(createdGroup.ID),
 		UserIDs:     append(req.TargetUserIDs, req.OwnerID),
 	}
 

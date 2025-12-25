@@ -11,7 +11,7 @@ type ChatMessage struct {
 	ChatGroupID  int        `json:"chat_group_id"`
 	UserIDSender int        `json:"user_id_sender"`
 	MessageText  string     `json:"message_text"`
-	DeleteBy     string     `json:"delete_by"`
+	DeletedBy    int        `json:"deleted_by"`
 	IsDeleted    int        `json:"is_deleted"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`

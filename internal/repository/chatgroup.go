@@ -11,16 +11,19 @@ import (
 )
 
 type ChatGroupRepository struct {
-	logger         *xlogger.Logger
-	chatGroupTable *gorm.DB
+	logger               *xlogger.Logger
+	chatGroupTable       *gorm.DB
+	chatGroupMemberTable *gorm.DB
 }
 
 func NewChatGroupRepository(logger *xlogger.Logger, db *gorm.DB) *ChatGroupRepository {
 	return &ChatGroupRepository{
-		logger:         logger,
-		chatGroupTable: db.Table("chat_groups"),
+		logger:               logger,
+		chatGroupTable:       db.Table("chat_groups"),
+		chatGroupMemberTable: db.Table("chat_group_members"),
 	}
 }
+
 func (r *ChatGroupRepository) ListChatGroupsWithMembers(ctx context.Context, req *chatgroup.ListChatGroupRequest) ([]*chatgroup.ListResponse, int64, error) {
 
 	var rows []*chatgroup.Row

@@ -10,6 +10,6 @@ type Client struct {
 	Conn   *websocket.Conn
 	UserID string
 	Send   chan []byte
-	Rooms  map[string]bool
+	Rooms  map[int]bool
 	Mu     sync.Mutex
 }

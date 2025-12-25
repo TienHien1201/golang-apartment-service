@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"strconv"
 
 	"thomas.vn/apartment_service/internal/domain/model/chatgroup"
 	"thomas.vn/apartment_service/internal/domain/model/chatmessage"
@@ -27,15 +26,15 @@ func NewChatUcase(
 		chatMessageUC: chatMessageUC,
 	}
 }
-func (u *ChatUcase) CreateRoom(ctx context.Context, req *chatgroup.CreateChatGroupRequest) (string, error) {
+func (u *ChatUcase) CreateRoom(ctx context.Context, req *chatgroup.CreateChatGroupRequest) (int, error) {
 
 	group, err := u.chatGroupUC.CreateChatGroup(ctx, req)
 	if err != nil {
 		u.logger.Error("CreateRoom failed", xlogger.Error(err))
-		return "", err
+		return 0, err
 	}
 
-	return strconv.FormatInt(group.ID, 10), nil
+	return group.ID, nil
 }
 
 func (u *ChatUcase) SendMessage(ctx context.Context, request *chatmessage.CreateChatMessageRequest) error {

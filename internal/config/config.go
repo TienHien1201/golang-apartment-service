@@ -109,8 +109,5 @@ func validateConfig(cfg *Config) error {
 	if cfg.Server.HTTP.Port <= 0 {
 		return fmt.Errorf("invalid HTTP port")
 	}
-	if cfg.Cloudinary.CloudName == "" {
-		return fmt.Errorf("cloudinary.cloud_name is required")
-	}
 	return nil
 }
