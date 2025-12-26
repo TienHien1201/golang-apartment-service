@@ -37,7 +37,7 @@ linters:
 
 linters-settings:
   goimports:
-    local-prefixes: hasaki.vn
+    local-prefixes: apartment.vn
 
   gocritic:
     enabled-tags:

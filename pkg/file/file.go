@@ -104,7 +104,7 @@ func (h *HTTPFile) Upload(fileHeader *multipart.FileHeader, dstPath string) (str
 	handler := NewUploadHandler(UploadOptions{
 		AllowedMimeTypes: []string{fileType},
 		AllowedExts:      []string{ext},
-		Overwrite:        false,
+		Overwrite:        true,
 		MaxSize:          10 * (1 << 20), // 10MB
 		MinSize:          1 << 10,        // 1KB
 		ImageQuality:     90,

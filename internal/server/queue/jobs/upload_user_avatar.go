@@ -3,6 +3,8 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"thomas.vn/apartment_service/internal/domain/consts"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
@@ -44,15 +46,26 @@ func (j *UploadUserAvatarJob) Handle(ctx context.Context, payload interface{}) e
 		return fmt.Errorf("invalid payload")
 	}
 
-	path := "attachments/images/avatar"
-	fullPath, err := j.fileService.Upload(req.File, path)
+	dir := "attachments/images/avatar"
+
+	fullPath, err := j.fileService.Upload(req.File, dir)
 	if err != nil {
 		return err
 	}
 
+	oldName := filepath.Base(fullPath)
+	newName := "local-" + oldName
+
+	oldPath := fullPath
+	newPath := filepath.Join(dir, newName)
+
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return fmt.Errorf("rename avatar file failed: %w", err)
+	}
+
 	return j.userUC.ProcessUploadLocal(ctx, &xuser.UploadAvatarLocalInput{
 		UserID:   req.UserID,
-		Filename: req.File.Filename,
-		Filepath: fullPath,
+		Filename: newName,
+		Filepath: newPath,
 	})
 }

@@ -35,15 +35,15 @@ func (j *MailJob) Type() xqueue.MessageType {
 }
 
 func (j *MailJob) Handle(ctx context.Context, payload interface{}) error {
-	j.logger.Info("Starting MailJob.Handle")
-	j.logger.Info(
-		"Received payload type",
-		xlogger.String("type", fmt.Sprintf("%T", payload)),
-	)
-	j.logger.Info(
-		"Received payload value",
-		xlogger.String("value", fmt.Sprintf("%+v", payload)),
-	)
+	//j.logger.Info("Starting MailJob.Handle")
+	//j.logger.Info(
+	//	"Received payload type",
+	//	xlogger.String("type", fmt.Sprintf("%T", payload)),
+	//)
+	//j.logger.Info(
+	//	"Received payload value",
+	//	xlogger.String("value", fmt.Sprintf("%+v", payload)),
+	//)
 
 	req, ok := payload.(*model.MailPayload)
 	if !ok {

@@ -75,9 +75,9 @@ run-swagger:
 push-swagger:
 	@make gen-swagger
 	@cp docs/swagger/swagger.json docs/swagger/swagger.json.bak
-	@sed -i 's|"host": ".*"|"host": "tuyendung-qc.inshasaki.com"|' docs/swagger/swagger.json.bak
+	@sed -i 's|"host": ".*"|"host": "apartment-business.invinhome.com"|' docs/swagger/swagger.json.bak
 	@sed -i -z 's|"schemes":\s*\[\s*"http"\s*\],|"schemes": ["https"],|' docs/swagger/swagger.json.bak
-	@curl -X POST "https://wshr.inshasaki.com/swagger/api/push?service=go-hr-recruitment" -H "Content-Type: application/json" --data-binary @docs/swagger/swagger.json.bak
+	@curl -X POST "https://wshr.invinhome.com/swagger/api/push?service=go-apartment" -H "Content-Type: application/json" --data-binary @docs/swagger/swagger.json.bak
 	@rm -rf docs/swagger/swagger.json.bak
 
 .PHONY: sonar
@@ -85,12 +85,12 @@ push-swagger:
 sonar:
 	@docker run --rm \
 	  --network dev_default \
-	  -e SONAR_HOST_URL=https://sonarqube.testk8s.rdhasaki.com \
+	  -e SONAR_HOST_URL=https://sonarqube.testk8s.rdapartment.com \
 	  -e SONAR_TOKEN=squ_46a75e7e8f0bf1a8767025de4d6b6831809e46b5 \
 	  -v $(shell pwd):/usr/src \
 	  sonarsource/sonar-scanner-cli \
-	  -Dsonar.projectKey=go-hr-recruitment-dev \
-	  -Dsonar.projectName=go-hr-recruitment-dev \
+	  -Dsonar.projectKey=go-apartment-dev \
+	  -Dsonar.projectName=go-apartment-dev \
 	  -Dsonar.sources=. \
 	  -Dsonar.language=go \
 	  -Dsonar.qualitygate.wait=true \

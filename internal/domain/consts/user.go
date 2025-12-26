@@ -6,4 +6,5 @@ const (
 	// UserStatusInactive is the status for inactive users
 	UserStatusInactive = 0
 	NotDeleted         = 0
+	DefaultUserRoleID  = 2
 )

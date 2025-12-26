@@ -39,14 +39,8 @@ database:
     addresses:
       - http://localhost:9200
     username: 'elastic'
-    password: 'hOjTSduL9of1SN72'
+    password: '8000'
     enableLogging: true
-
-ai:
-  url: https://hasa-agent.vgpu.rdhasaki.com/api/
-  downloadurl: https://tuyendung-qc.inshasaki.com/
-  staffurl: https://test-ws.inshasaki.com/
-  stafftoken: 1234567890
 
 jwt:
   access_secret: "ACCESS_TOKEN_SECRET"

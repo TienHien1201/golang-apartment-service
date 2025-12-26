@@ -1,7 +1,7 @@
-# HR Recruitment Service
+# Apartment business Service
 
 ## Introduction
-This project is a Go-based service for managing HR recruitment processes. The Makefile included provides a set of commands to streamline development, testing, and deployment.
+This project is a Go-based service for managing booking apartment vinhome and social. The Makefile included provides a set of commands to streamline development, testing, and deployment.
 
 ## Prerequisites
 Ensure you have the following installed:

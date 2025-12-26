@@ -84,6 +84,7 @@ func (h *handler) RegisterRoutes(e *echo.Echo) {
 
 	// WebSocket
 	e.GET("/ws", h.wsHandler.Handle())
+	e.Static("/attachments", "attachments")
 
 }
 
@@ -95,8 +96,8 @@ func (h *handler) registerUserRoutes(e *echo.Group) {
 		users.PUT("/:id", h.user.User().Update)
 		users.DELETE("/:id", h.user.User().Delete)
 		users.GET("", h.user.User().List, h.authMiddleware.Protect)
-		users.POST("/upload-local", h.user.User().UploadLocal, h.authMiddleware.Protect)
-		users.POST("/upload-cloud", h.user.User().UploadCloud, h.authMiddleware.Protect)
+		users.POST("/avatar-local", h.user.User().UploadLocal, h.authMiddleware.Protect)
+		users.POST("/avatar-cloud", h.user.User().UploadCloud, h.authMiddleware.Protect)
 	}
 }
 

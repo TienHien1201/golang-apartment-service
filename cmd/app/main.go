@@ -28,9 +28,9 @@ func init() {
 	flag.StringVar(&Env, "env", Env, "Environment")
 }
 
-// @title HR Recruitment API
+// @title Apartment API
 // @version 1.0
-// @description This is an HR recruitment system API
+// @description This is an apartment system API
 // @BasePath /
 // @host localhost:1424
 // @schemes http

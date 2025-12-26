@@ -1,0 +1,12 @@
+###############
+Docker container
+
+- Redis
+```
+docker run -d --name apartment_redis --network apartment_network -p 6379:6379 -v redis_data:/data redis:7.2-alpine
+```
+
+-  Elasticsearch
+```
+docker run -d --name apartment_elasticsearch --network apartment_network -p 9200:9200 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:6.8.23
+```

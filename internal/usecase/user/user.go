@@ -48,7 +48,7 @@ func (u *userUsecase) CreateUser(ctx context.Context, req *xuser.CreateUserReque
 		Email:    req.Email,
 		Password: req.Password, // Note: Password should be hashed before storing
 		FullName: req.FullName,
-		RoleID:   req.RoleID,
+		RoleID:   consts.DefaultUserRoleID,
 		IsActive: consts.UserStatusActive,
 	}
 

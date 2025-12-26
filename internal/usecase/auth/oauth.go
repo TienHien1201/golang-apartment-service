@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
+	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
-	xfile "thomas.vn/apartment_service/pkg/file"
 )
 
 func (u *authUsecase) GoogleLogin(ctx context.Context, gUser *model.GoogleUser) (string, string, error) {
@@ -24,7 +24,7 @@ func (u *authUsecase) GoogleLogin(ctx context.Context, gUser *model.GoogleUser) 
 
 	if user == nil {
 		user = &xuser.User{
-			RoleID:    xfile.DefaultUserRoleID,
+			RoleID:    consts.DefaultUserRoleID,
 			Email:     gUser.Email,
 			FullName:  gUser.FullName,
 			Avatar:    avatar,

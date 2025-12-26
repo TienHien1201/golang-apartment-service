@@ -54,8 +54,8 @@ func (u *authUsecase) Register(ctx context.Context, req *xuser.CreateUserRequest
 		Email:     req.Email,
 		Password:  string(hashedPassword),
 		FullName:  req.FullName,
-		RoleID:    req.RoleID,
-		IsActive:  1,
+		IsActive:  consts.UserStatusActive,
+		RoleID:    consts.DefaultUserRoleID,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

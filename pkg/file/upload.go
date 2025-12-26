@@ -201,20 +201,29 @@ func (u *UploadHandler) isImageFile(filename string) bool {
 
 // generateFileName creates a unique filename for the uploaded file
 func generateFileName(originalName string, overwrite bool) string {
+	ext := strings.ToLower(filepath.Ext(originalName)) // .png
+	base := strings.TrimSuffix(originalName, ext)
+
+	safeBase := sanitizeFileName(base)
+
 	if overwrite {
-		return sanitizeFileName(originalName)
+		return safeBase + ext
 	}
 
-	ext := filepath.Ext(originalName)
-	base := sanitizeFileName(originalName[:len(originalName)-len(ext)])
-	timestamp := time.Now().Format("021504")
+	timestamp := time.Now().Format("20060102150405")
 	random := uuid.New().String()
-	return fmt.Sprintf("%s_%s_%s%s", base, timestamp, random, ext)
+	return fmt.Sprintf("%s_%s_%s%s", safeBase, timestamp, random, ext)
 }
 
 // sanitizeFileName cleans the filename to be safe for filesystem use
 func sanitizeFileName(name string) string {
-	reg := regexp.MustCompile("[^a-zA-Z0-9-_]+")
-	safe := reg.ReplaceAllString(name, "-")
-	return strings.ToLower(strings.Trim(safe, "-"))
+	name = strings.TrimSpace(name)
+
+	reg := regexp.MustCompile(`[^\w\s-]`)
+	name = reg.ReplaceAllString(name, "")
+
+	regSpace := regexp.MustCompile(`[\s-]+`)
+	name = regSpace.ReplaceAllString(name, "-")
+
+	return strings.ToLower(name)
 }
