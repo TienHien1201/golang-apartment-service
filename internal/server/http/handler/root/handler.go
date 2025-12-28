@@ -3,6 +3,7 @@ package root
 import (
 	"github.com/labstack/echo/v4"
 	handler2 "thomas.vn/apartment_service/internal/server/http/handler/ai"
+	"thomas.vn/apartment_service/internal/server/http/handler/articles"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatgroup"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
@@ -26,6 +27,7 @@ type handler struct {
 	chatMessage          *chatmessage.Handler
 	chatGroup            *chatgroup.Handler
 	wsHandler            *ws.Handler
+	article              *articles.Handler
 }
 
 func NewHTTPHandler(
@@ -39,6 +41,7 @@ func NewHTTPHandler(
 	chatMessage *chatmessage.Handler,
 	chatGroup *chatgroup.Handler,
 	wsHandler *ws.Handler,
+	article *articles.Handler,
 ) xhttp.Handler {
 	return &handler{
 		logger:               logger,
@@ -51,6 +54,7 @@ func NewHTTPHandler(
 		totp:                 totp,
 		chatGroup:            chatGroup,
 		wsHandler:            wsHandler,
+		article:              article,
 	}
 }
 
@@ -82,8 +86,13 @@ func (h *handler) RegisterRoutes(e *echo.Echo) {
 	//	Chat group routes
 	h.registerChatGroupRoutes(api)
 
+	// Articles routes
+	h.registerArticleRoutes(api)
+
 	// WebSocket
 	e.GET("/ws", h.wsHandler.Handle())
+
+	//Public
 	e.Static("/attachments", "attachments")
 
 }
@@ -138,9 +147,17 @@ func (h *handler) registerChatMessageRoutes(e *echo.Group) {
 		chat.GET("", h.chatMessage.ChatMessage().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }
+
 func (h *handler) registerChatGroupRoutes(e *echo.Group) {
 	chat := e.Group("/chat-group")
 	{
 		chat.GET("", h.chatGroup.ChatGroup().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+	}
+}
+
+func (h *handler) registerArticleRoutes(e *echo.Group) {
+	chat := e.Group("/article")
+	{
+		chat.GET("", h.article.Articles().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }

@@ -2,7 +2,6 @@ package xuser
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -176,7 +175,6 @@ func (h *UserHandler) List(c echo.Context) error {
 	if err != nil {
 		return xhttp.AppErrorResponse(c, err)
 	}
-	fmt.Printf("RAW filters = %q\n", req.Filters)
 	return xhttp.PaginationListResponse(c, &req.PaginationOptions, res, total)
 }
 

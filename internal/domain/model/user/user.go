@@ -54,11 +54,6 @@ type ListUserRequest struct {
 	Filters   string `query:"filters"`
 }
 
-type ListUserResponse struct {
-	Rows  []*User `json:"rows"`
-	Total int64   `json:"total,omitempty"`
-}
-
 func (User) TableName() string {
 	return "users"
 }

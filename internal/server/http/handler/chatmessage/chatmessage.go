@@ -28,7 +28,6 @@ func (h *ChatMessagesHandler) List(c echo.Context) error {
 		return xhttp.BadRequestResponse(c, err)
 	}
 
-	// 👉 Parse filters JSON thủ công
 	rawFilters := c.QueryParam("filters")
 	if rawFilters != "" {
 		var f struct {

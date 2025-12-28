@@ -4,6 +4,7 @@ import (
 	"thomas.vn/apartment_service/internal/config"
 	"thomas.vn/apartment_service/internal/repository"
 	"thomas.vn/apartment_service/internal/server/http/handler/ai"
+	"thomas.vn/apartment_service/internal/server/http/handler/articles"
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatgroup"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
@@ -68,6 +69,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	chatMessageRepo := repository.NewChatMessageRepository(logger, mysqlClient.DB)
 	chatGroupRepo := repository.NewChatGroupRepository(logger, mysqlClient.DB)
 	tokenSvc := usecase.NewToken(tokenCfg)
+	articlesRepo := repository.NewArticlesRepository(logger, mysqlClient.DB)
 
 	// === USECASES ===
 	userUC := user.NewUserUsecase(logger, userRepo, redisCache, fileSvc, inMemoryQueue)
@@ -79,6 +81,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	mailUC := usecase.NewMailUsecase(mailer)
 	totpUc := totp.NewTotpUsecase(logger, userRepo)
 	chatWsUC := usecase.NewChatUcase(logger, chatGroupUc, chatMessageUC)
+	articleUc := usecase.NewArticlesUsecase(logger, articlesRepo)
 
 	// === HANDLERS ===
 	userHandler := xuser.NewHandler(logger, xuser.WithUserUsecase(userUC))
@@ -89,6 +92,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	authMiddlewareHandler := xmiddleware.NewAuthMiddleware(logger, tokenSvc, userRepo)
 	permissionMiddlewareHandler := xmiddleware.NewPermissionMiddleware(permissionUC)
 	tOtpHandler := xtotp.NewHandler(logger, xtotp.WithTotpUsecase(totpUc))
+	articleHandler := articles.NewHandler(logger, articles.WithArticleUsecase(articleUc))
 
 	hub := ws.NewHub()
 	wsServer := &ws.Server{Hub: hub, ChatUC: chatWsUC, Token: tokenSvc}
@@ -106,6 +110,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		chatMessageHandler,
 		chatGroupHandler,
 		wsHandler,
+		articleHandler,
 	)
 
 	//========= Create job ==============
