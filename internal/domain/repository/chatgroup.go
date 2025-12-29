@@ -10,4 +10,5 @@ type ChatGroupRepository interface {
 	ListChatGroupsWithMembers(ctx context.Context, req *chatgroup.ListChatGroupRequest) ([]*chatgroup.ListResponse, int64, error)
 	CreateChatGroup(ctx context.Context, chatGroup *chatgroup.ChatGroup) (*chatgroup.ChatGroup, error)
 	AddMembers(ctx context.Context, req *chatgroup.CreateMemberRequest) error
+	FindChatOneByUserIDs(ctx context.Context, userIDs []int64) (*chatgroup.ChatGroup, error)
 }

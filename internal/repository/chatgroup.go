@@ -2,7 +2,8 @@ package repository
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"sort"
 
 	"gorm.io/gorm"
 	"thomas.vn/apartment_service/internal/domain/model"
@@ -82,18 +83,13 @@ func (r *ChatGroupRepository) ListChatGroupsWithMembers(ctx context.Context, req
 	total = int64(len(result))
 	return result, total, nil
 }
-
 func (r *ChatGroupRepository) CreateChatGroup(ctx context.Context, chatGroup *chatgroup.ChatGroup) (*chatgroup.ChatGroup, error) {
+
 	chatGroup.CreatedAt = xutils.GetTimeNow()
 	chatGroup.UpdatedAt = xutils.GetTimeNow()
 
-	result := r.chatGroupTable.WithContext(ctx).Create(chatGroup)
-	if result.Error != nil {
-		r.logger.Error("Create Chat group failed", xlogger.Error(result.Error))
-		return nil, result.Error
-	}
-	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("Create Chat group failed")
+	if err := r.chatGroupTable.WithContext(ctx).Create(chatGroup).Error; err != nil {
+		return nil, err
 	}
 
 	return chatGroup, nil
@@ -114,4 +110,35 @@ func (r *ChatGroupRepository) AddMembers(ctx context.Context, req *chatgroup.Cre
 		return err
 	}
 	return nil
+}
+
+func (r *ChatGroupRepository) FindChatOneByUserIDs(ctx context.Context, userIDs []int64) (*chatgroup.ChatGroup, error) {
+
+	if len(userIDs) != 2 {
+		return nil, nil
+	}
+
+	sort.Slice(userIDs, func(i, j int) bool {
+		return userIDs[i] < userIDs[j]
+	})
+
+	var group chatgroup.ChatGroup
+
+	err := r.chatGroupTable.
+		WithContext(ctx).
+		Where(`
+			JSON_CONTAINS(key_for_chat_one, JSON_ARRAY(?), '$.user_ids')
+			AND JSON_CONTAINS(key_for_chat_one, JSON_ARRAY(?), '$.user_ids')
+		`, userIDs[0], userIDs[1]).
+		First(&group).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &group, nil
 }

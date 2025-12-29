@@ -31,16 +31,30 @@ func (u *ChatGroupUsecase) ListChatGroups(
 	return u.chatGroupRepositoty.ListChatGroupsWithMembers(ctx, req)
 }
 
-func (u *ChatGroupUsecase) CreateChatGroup(
-	ctx context.Context,
-	req *chatgroup.CreateChatGroupRequest,
-) (*chatgroup.ChatGroup, error) {
+func (u *ChatGroupUsecase) CreateChatGroup(ctx context.Context, req *chatgroup.CreateChatGroupRequest) (*chatgroup.ChatGroup, error) {
 
 	if len(req.TargetUserIDs) == 0 {
 		return nil, fmt.Errorf("target users is required")
 	}
 
-	entity := &chatgroup.ChatGroup{Name: req.Name, OwnerID: req.OwnerID, IsDeleted: consts.NotDeleted}
+	userIDs := append(req.TargetUserIDs, req.OwnerID)
+	userIDs = uniqueInt64(userIDs)
+
+	entity := &chatgroup.ChatGroup{
+		Name:      req.Name,
+		OwnerID:   req.OwnerID,
+		IsDeleted: consts.NotDeleted,
+	}
+
+	// ================= CHAT 1–1 =================
+	if len(userIDs) == 2 {
+		keyObj, err := chatgroup.BuildChatOneKey(userIDs)
+		if err != nil {
+			return nil, err
+		}
+
+		entity.KeyForChatOne = keyObj
+	}
 
 	createdGroup, err := u.chatGroupRepositoty.CreateChatGroup(ctx, entity)
 	if err != nil {
@@ -50,7 +64,7 @@ func (u *ChatGroupUsecase) CreateChatGroup(
 
 	memberReq := &chatgroup.CreateMemberRequest{
 		ChatGroupID: int64(createdGroup.ID),
-		UserIDs:     append(req.TargetUserIDs, req.OwnerID),
+		UserIDs:     userIDs,
 	}
 
 	if err := u.chatGroupRepositoty.AddMembers(ctx, memberReq); err != nil {
@@ -59,4 +73,17 @@ func (u *ChatGroupUsecase) CreateChatGroup(
 	}
 
 	return createdGroup, nil
+}
+
+func uniqueInt64(input []int64) []int64 {
+	m := make(map[int64]struct{}, len(input))
+	out := make([]int64, 0, len(input))
+	for _, v := range input {
+		if _, ok := m[v]; ok {
+			continue
+		}
+		m[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
 }
