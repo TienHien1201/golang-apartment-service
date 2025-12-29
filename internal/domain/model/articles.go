@@ -33,3 +33,7 @@ type ArticlesFilters struct {
 	Content string `query:"content"`
 	Views   int    `query:"views"`
 }
+
+func (Articles) TableName() string {
+	return "articles"
+}

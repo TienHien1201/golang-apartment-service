@@ -30,7 +30,7 @@ func (h *ArticleHandler) List(c echo.Context) error {
 	}
 	var filters model.ArticlesFilters
 
-	if req.Filters != "" {
+	if req.Filters != "" && req.Filters != "undefined" {
 		decoded, err := url.QueryUnescape(req.Filters)
 		if err != nil {
 			return xhttp.BadRequestResponse(c, err)

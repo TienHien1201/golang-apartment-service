@@ -22,15 +22,8 @@ func NewPermissionRepository(
 	}
 }
 
-func (r *PermissionRepository) HasPermission(
-	ctx context.Context,
-	roleID int,
-	method string,
-	endpoint string,
-) (bool, error) {
-
+func (r *PermissionRepository) HasPermission(ctx context.Context, roleID int, method string, endpoint string) (bool, error) {
 	var count int64
-
 	err := r.db.WithContext(ctx).
 		Table("role_permission rp").
 		Joins("JOIN permissions p ON p.id = rp.permission_id").

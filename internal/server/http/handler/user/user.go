@@ -156,7 +156,7 @@ func (h *UserHandler) List(c echo.Context) error {
 
 	var filters xuser.UserFilters
 
-	if req.Filters != "" {
+	if req.Filters != "" && req.Filters != "undefined" {
 		decoded, err := url.QueryUnescape(req.Filters)
 		if err != nil {
 			return xhttp.BadRequestResponse(c, err)

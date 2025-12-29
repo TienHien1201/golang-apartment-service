@@ -158,6 +158,7 @@ func (h *handler) registerChatGroupRoutes(e *echo.Group) {
 func (h *handler) registerArticleRoutes(e *echo.Group) {
 	chat := e.Group("/article")
 	{
+		chat.GET("/all", h.article.Articles().List, h.authMiddleware.Protect)
 		chat.GET("", h.article.Articles().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }

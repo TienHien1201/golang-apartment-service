@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/model/chatgroup"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 	xutils "thomas.vn/apartment_service/pkg/utils"
@@ -100,20 +101,15 @@ func (r *ChatGroupRepository) CreateChatGroup(ctx context.Context, chatGroup *ch
 
 func (r *ChatGroupRepository) AddMembers(ctx context.Context, req *chatgroup.CreateMemberRequest) error {
 
-	type ChatGroupMember struct {
-		ChatGroupID int64 `gorm:"column:chat_group_id"`
-		UserID      int64 `gorm:"column:user_id"`
-	}
-
-	members := make([]*ChatGroupMember, 0, len(req.UserIDs))
+	members := make([]*model.ChatGroupMembers, 0, len(req.UserIDs))
 	for _, uid := range req.UserIDs {
-		members = append(members, &ChatGroupMember{
+		members = append(members, &model.ChatGroupMembers{
 			ChatGroupID: req.ChatGroupID,
 			UserID:      uid,
 		})
 	}
 
-	if err := r.chatGroupTable.WithContext(ctx).Create(&members).Error; err != nil {
+	if err := r.chatGroupMemberTable.WithContext(ctx).Create(&members).Error; err != nil {
 		r.logger.Error("AddMembers failed", xlogger.Error(err))
 		return err
 	}

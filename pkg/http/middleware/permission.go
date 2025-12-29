@@ -1,6 +1,7 @@
 package xmiddleware
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -29,7 +30,8 @@ func (m *PermissionMiddleware) Check(next echo.HandlerFunc) echo.HandlerFunc {
 
 		method := c.Request().Method
 		endpoint := c.Path()
-
+		log.Println("endpoint: ", endpoint)
+		log.Println("method: ", method)
 		hasPermission, err := m.permissionUC.CheckPermission(
 			c.Request().Context(),
 			user.RoleID,

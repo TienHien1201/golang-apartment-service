@@ -58,7 +58,9 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 	if result.IsTotp {
 		return xhttp.SuccessResponse(c, map[string]any{
-			"isTotp": true,
+			"isTotp":       true,
+			"accessToken":  result.AccessToken,
+			"refreshToken": result.RefreshToken,
 		})
 	}
 

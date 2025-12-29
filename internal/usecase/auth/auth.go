@@ -96,10 +96,17 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 		)
 	}
 
+	accessToken, refreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))
+	if err != nil {
+		return nil, err
+	}
+
 	if user.TotpSecret != nil {
 		if totpToken == nil {
 			return &xauth.AuthLoginResult{
-				IsTotp: true,
+				IsTotp:       true,
+				AccessToken:  accessToken,
+				RefreshToken: refreshToken,
 			}, nil
 		}
 
@@ -112,12 +119,6 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 			)
 		}
 	}
-
-	accessToken, refreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))
-	if err != nil {
-		return nil, err
-	}
-
 	_ = u.queueService.PublishMessage(
 		ctx,
 		consts.MailJobType,
