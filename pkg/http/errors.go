@@ -33,3 +33,11 @@ func NotFoundErrorf(format string, a ...any) *AppError {
 func BadRequestErrorf(format string, a ...any) *AppError {
 	return NewAppError("ERR_BAD_REQUEST", "", fmt.Sprintf(format, a...), http.StatusBadRequest)
 }
+
+func ForbiddenErrorf(format string, a ...any) *AppError {
+	return NewAppError("ERR_FORBIDDEN", "", fmt.Sprintf(format, a...), http.StatusForbidden)
+}
+
+func UnauthorizedErrof(format string, a ...any) *AppError {
+	return NewAppError("ERR_UNAUTHORIZED", "", fmt.Sprintf(format, a...), http.StatusUnauthorized)
+}

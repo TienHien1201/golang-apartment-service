@@ -2,7 +2,6 @@ package totp
 
 import (
 	"context"
-	"net/http"
 
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
@@ -32,12 +31,7 @@ func (u *totpUsecase) Generate(
 	user *xuser.User,
 ) (string, string, error) {
 	if user.TotpSecret != nil {
-		return "", "", xhttp.NewAppError(
-			"ERR_TOTP_ALREADY_ENABLED",
-			"totp",
-			"Totp already enabled",
-			http.StatusBadRequest,
-		)
+		return "", "", xhttp.BadRequestErrorf("Totp already enabled")
 	}
 
 	result, err := pkgtotp.Generate(user.Email)
@@ -56,21 +50,11 @@ func (u *totpUsecase) Save(
 	token string,
 ) error {
 	if user.TotpSecret != nil {
-		return xhttp.NewAppError(
-			"ERR_TOTP_ALREADY_ENABLED",
-			"totp",
-			"Totp already enabled",
-			http.StatusBadRequest,
-		)
+		return xhttp.BadRequestErrorf("Totp already enabled")
 	}
 
 	if !pkgtotp.Verify(token, secret) {
-		return xhttp.NewAppError(
-			"ERR_INVALID_TOKEN",
-			"token",
-			"Invalid token",
-			http.StatusBadRequest,
-		)
+		return xhttp.BadRequestErrorf("Invalid token")
 	}
 
 	return u.userRepo.UpdateTotpSecret(ctx, int64(user.ID), &secret)
@@ -82,21 +66,11 @@ func (u *totpUsecase) Verify(
 	token string,
 ) error {
 	if user.TotpSecret == nil {
-		return xhttp.NewAppError(
-			"ERR_TOTP_NOT_ENABLED",
-			"totp",
-			"Totp not enabled",
-			http.StatusBadRequest,
-		)
+		return xhttp.BadRequestErrorf("Totp already enabled")
 	}
 
 	if !pkgtotp.Verify(token, *user.TotpSecret) {
-		return xhttp.NewAppError(
-			"ERR_INVALID_TOKEN",
-			"token",
-			"Invalid token",
-			http.StatusBadRequest,
-		)
+		return xhttp.BadRequestErrorf("Invalid token")
 	}
 
 	return nil
@@ -108,21 +82,11 @@ func (u *totpUsecase) Disable(
 	token string,
 ) error {
 	if user.TotpSecret == nil {
-		return xhttp.NewAppError(
-			"ERR_TOTP_NOT_ENABLED",
-			"totp",
-			"Totp not enabled",
-			http.StatusBadRequest,
-		)
+		return xhttp.BadRequestErrorf("Totp already enabled")
 	}
 
 	if !pkgtotp.Verify(token, *user.TotpSecret) {
-		return xhttp.NewAppError(
-			"ERR_INVALID_TOKEN",
-			"token",
-			"Invalid token",
-			http.StatusBadRequest,
-		)
+		return xhttp.BadRequestErrorf("Invalid token")
 	}
 
 	return u.userRepo.UpdateTotpSecret(ctx, int64(user.ID), nil)

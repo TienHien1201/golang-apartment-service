@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"net/http"
 	"path/filepath"
 	"time"
 
@@ -75,7 +74,7 @@ func (u *userUsecase) GetUser(ctx context.Context, id uint) (*xuser.User, error)
 }
 
 func (u *userUsecase) UpdateUser(ctx context.Context, req *xuser.UpdateUserRequest) (*xuser.User, error) {
-	user, err := u.GetUser(ctx, uint(req.ID))
+	user, err := u.GetUser(ctx, req.ID)
 	if err != nil {
 		u.logger.Error("Failed to get user", xlogger.Error(err))
 		return nil, err
@@ -129,11 +128,7 @@ func (u *userUsecase) DeleteUsersCreatedBefore(_ context.Context, days time.Time
 	return nil
 }
 
-func (u *userUsecase) UploadLocal(
-	ctx context.Context,
-	req *xuser.UploadAvatarLocalRequest,
-) error {
-
+func (u *userUsecase) UploadLocal(ctx context.Context, req *xuser.UploadAvatarLocalRequest) error {
 	if _, err := u.userRepo.GetUserByID(ctx, req.UserID); err != nil {
 		return err
 	}
@@ -158,11 +153,7 @@ func (u *userUsecase) UploadLocal(
 	return nil
 }
 
-func (u *userUsecase) ProcessUploadLocal(
-	ctx context.Context,
-	req *xuser.UploadAvatarLocalInput,
-) error {
-
+func (u *userUsecase) ProcessUploadLocal(ctx context.Context, req *xuser.UploadAvatarLocalInput) error {
 	userEntity, err := u.userRepo.GetUserByID(ctx, req.UserID)
 	if err != nil {
 		return err
@@ -183,18 +174,9 @@ func (u *userUsecase) ProcessUploadLocal(
 	return nil
 }
 
-func (u *userUsecase) UploadCloud(
-	ctx context.Context,
-	req *xuser.UploadAvatarCloudRequest,
-) error {
-
+func (u *userUsecase) UploadCloud(ctx context.Context, req *xuser.UploadAvatarCloudRequest) error {
 	if req.File == nil {
-		return xhttp.NewAppError(
-			"ERR_FILE_NOT_FOUND",
-			"avatar",
-			"File is required",
-			http.StatusBadRequest,
-		)
+		return xhttp.BadRequestErrorf("File is required")
 	}
 
 	user, err := u.userRepo.GetUserByID(ctx, req.UserID)
@@ -226,11 +208,7 @@ func (u *userUsecase) UploadCloud(
 
 	return nil
 }
-func (u *userUsecase) ProcessUploadCloud(
-	ctx context.Context,
-	req *xuser.UploadAvatarCloudInput,
-) error {
-
+func (u *userUsecase) ProcessUploadCloud(ctx context.Context, req *xuser.UploadAvatarCloudInput) error {
 	user, err := u.userRepo.GetUserByID(ctx, req.UserID)
 	if err != nil {
 		return err

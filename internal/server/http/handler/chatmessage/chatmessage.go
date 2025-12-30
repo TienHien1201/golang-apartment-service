@@ -21,6 +21,22 @@ func NewChatMessageHandler(logger *xlogger.Logger, chatMessageUc usecase.ChatMes
 		chatMessageUc: chatMessageUc,
 	}
 }
+
+// List godoc
+// @Summary List chat messages
+// @Description Get list of chat messages by chat group with pagination
+// @Tags chat-messages
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Limit per page"
+// @Param sort_by query string false "Sort by field"
+// @Param order_by query string false "Order by asc/desc"
+// @Param filters query string true "Filter JSON, example: {\"chatGroupID\":1}"
+// @Success 200 {object} xhttp.APIResponse{data=[]chatmessage.ChatMessage}
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/chat-messages [get]
 func (h *ChatMessagesHandler) List(c echo.Context) error {
 	var req chatmessage.ListChatMessageRequest
 

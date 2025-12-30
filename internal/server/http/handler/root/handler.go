@@ -9,7 +9,6 @@ import (
 	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
 	"thomas.vn/apartment_service/internal/server/http/handler/permission"
 	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
-	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 	ws "thomas.vn/apartment_service/pkg/websocket"
 
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
@@ -22,8 +21,8 @@ type handler struct {
 	user                 *xuser.Handler
 	auth                 *xAuth.Handler
 	ai                   *handler2.Handler
-	authMiddleware       *xmiddleware.AuthMiddleware
-	permissionMiddleware *xmiddleware.PermissionMiddleware
+	authMiddleware       *xAuth.AuthMiddleware
+	permissionMiddleware *permission.PermissionsMiddleware
 	totp                 *xtotp.Handler
 	chatMessage          *chatmessage.Handler
 	chatGroup            *chatgroup.Handler
@@ -37,8 +36,8 @@ func NewHTTPHandler(
 	user *xuser.Handler,
 	auth *xAuth.Handler,
 	ai *handler2.Handler,
-	authMiddleware *xmiddleware.AuthMiddleware,
-	permissionMiddleware *xmiddleware.PermissionMiddleware,
+	authMiddleware *xAuth.AuthMiddleware,
+	permissionMiddleware *permission.PermissionsMiddleware,
 	totp *xtotp.Handler,
 	chatMessage *chatmessage.Handler,
 	chatGroup *chatgroup.Handler,
@@ -101,6 +100,7 @@ func (h *handler) RegisterRoutes(e *echo.Echo) {
 
 	//Public
 	e.Static("/attachments", "attachments")
+	e.Static("/swagger-ui", "docs/swagger-ui")
 
 }
 
@@ -149,30 +149,32 @@ func (h *handler) registerTotpRoutes(e *echo.Group) {
 }
 
 func (h *handler) registerChatMessageRoutes(e *echo.Group) {
-	chat := e.Group("/chat-message")
+	chatMessage := e.Group("/chat-message")
 	{
-		chat.GET("", h.chatMessage.ChatMessage().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+		chatMessage.GET("", h.chatMessage.ChatMessage().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }
 
 func (h *handler) registerChatGroupRoutes(e *echo.Group) {
-	chat := e.Group("/chat-group")
+	chatGroup := e.Group("/chat-group")
 	{
-		chat.GET("", h.chatGroup.ChatGroup().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+		chatGroup.GET("", h.chatGroup.ChatGroup().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }
 
 func (h *handler) registerArticleRoutes(e *echo.Group) {
-	chat := e.Group("/article")
+	article := e.Group("/article")
 	{
-		chat.GET("/all", h.article.Articles().List, h.authMiddleware.Protect)
-		chat.GET("", h.article.Articles().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+		article.GET("/all", h.article.Articles().List, h.authMiddleware.Protect)
+		article.GET("", h.article.Articles().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }
 
 func (h *handler) registerPermissionRoutes(e *echo.Group) {
-	chat := e.Group("/permission")
+	permissions := e.Group("/permission")
 	{
-		chat.POST("", h.permission.Permission().Create, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+		permissions.GET("/:id", h.permission.Permission().Get, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+		permissions.PUT("/:id", h.permission.Permission().Update, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+		permissions.POST("", h.permission.Permission().Create, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }

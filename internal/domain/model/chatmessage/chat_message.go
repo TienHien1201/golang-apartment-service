@@ -27,9 +27,9 @@ type ListChatMessageRequest struct {
 }
 
 type CreateChatMessageRequest struct {
-	ChatGroupID  int    `json:"chat_group_id"`
-	UserIDSender int    `json:"user_id_sender"`
-	MessageText  string `json:"message_text"`
+	ChatGroupID  int    `json:"chat_group_id" validate:"required"`
+	UserIDSender int    `json:"user_id_sender" validate:"required"`
+	MessageText  string `json:"message_text" validate:"required"`
 }
 
 type Response struct {

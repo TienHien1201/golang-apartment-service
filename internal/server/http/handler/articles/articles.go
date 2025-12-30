@@ -23,6 +23,21 @@ func NewArticleHandler(logger *xlogger.Logger, articlesUC usecase.ArticlesUsecas
 	}
 }
 
+// List godoc
+// @Summary List articles
+// @Description List articles with pagination and filters
+// @Tags articles
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Limit per page"
+// @Param sort_by query string false "Sort by field"
+// @Param order_by query string false "Order by asc/desc"
+// @Param filters query string false "JSON encoded filters"
+// @Success 200 {object} xhttp.APIResponse{data=[]model.Articles}
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/articles [get]
 func (h *ArticleHandler) List(c echo.Context) error {
 	var req model.ListArticleRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {

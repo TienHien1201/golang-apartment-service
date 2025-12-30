@@ -20,6 +20,20 @@ func NewChatGroupHandler(logger *xlogger.Logger, chatGroupUc usecase.ChatGroupUs
 	}
 }
 
+// List godoc
+// @Summary List chat groups
+// @Description Get list of chat groups with pagination
+// @Tags chat-groups
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Limit per page"
+// @Param sort_by query string false "Sort by field"
+// @Param order_by query string false "Order by asc/desc"
+// @Success 200 {object} xhttp.APIResponse{data=[]chatgroup.ChatGroup}
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/chat-groups [get]
 func (h *ChatGroupsHandler) List(c echo.Context) error {
 	var req chatgroup.ListChatGroupRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {

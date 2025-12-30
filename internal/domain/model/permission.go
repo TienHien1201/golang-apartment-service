@@ -23,6 +23,17 @@ type CreatePermissionRequest struct {
 	Module   string `json:"module" validate:"required"`
 }
 
+type UpdatePermissionRequest struct {
+	PermissionIDRequest
+	Name     string `json:"name" validate:"required"`
+	Endpoint string `json:"endpoint" validate:"required"`
+	Method   string `json:"method" validate:"required,oneof=GET POST PUT DELETE"`
+	Module   string `json:"module" validate:"required"`
+}
+
+type PermissionIDRequest struct {
+	ID uint `json:"id" param:"id" swaggerignore:"true" validate:"required,gt=0"`
+}
 type CheckPermissionRequest struct {
 	RoleID   int    `json:"role_id"`
 	Method   string `json:"method"`

@@ -20,7 +20,6 @@ import (
 	xcloudinary "thomas.vn/apartment_service/pkg/cloudinary"
 	xfile "thomas.vn/apartment_service/pkg/file"
 	xhttp "thomas.vn/apartment_service/pkg/http"
-	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 	mail "thomas.vn/apartment_service/pkg/mailer"
 	xgoogle "thomas.vn/apartment_service/pkg/oauth/google"
@@ -90,8 +89,8 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	chatGroupHandler := chatgroup.NewHandler(logger, chatgroup.WithChatGroupUsecase(chatGroupUc))
 	authHandler := xAuth.NewHandler(logger, xAuth.WithGoogleOAuth(googleOAuth), xAuth.WithAuthUsecase(authUC))
 	aiHandler := ai.NewAiHandler(logger, aiUC)
-	authMiddlewareHandler := xmiddleware.NewAuthMiddleware(logger, tokenSvc, userRepo)
-	permissionMiddlewareHandler := xmiddleware.NewPermissionMiddleware(permissionUC)
+	authMiddlewareHandler := xAuth.NewAuthMiddleware(logger, tokenSvc, userRepo)
+	permissionMiddlewareHandler := permission.NewPermissionMiddleware(logger, permissionUC)
 	tOtpHandler := xtotp.NewHandler(logger, xtotp.WithTotpUsecase(totpUc))
 	articleHandler := articles.NewHandler(logger, articles.WithArticleUsecase(articleUc))
 	permissionHandler := permission.NewHandler(logger, permission.WithPermissionUsecase(permissionUC))

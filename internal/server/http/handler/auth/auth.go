@@ -25,7 +25,17 @@ func NewAuthHandler(logger *xlogger.Logger, authUC usecase.AuthUsecase, googleOA
 	}
 }
 
-// REGISTER
+// Register godoc
+// @Summary Register new user
+// @Description Register new user
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param data body xuser.CreateUserRequest true "Register request"
+// @Success 201 {object} xhttp.APIResponse{data=xuser.User}
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/auth/register [post]
 func (h *AuthHandler) Register(c echo.Context) error {
 	var req xuser.CreateUserRequest
 
@@ -42,6 +52,17 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	return xhttp.CreatedResponse(c, user)
 }
 
+// Login godoc
+// @Summary Login
+// @Description Login with email & password (support TOTP)
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param data body xauth.LoginRequest true "Login request"
+// @Success 200 {object} xhttp.APIResponse{data=xauth.AuthLoginResult}
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/auth/login [post]
 func (h *AuthHandler) Login(c echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -70,15 +91,20 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	})
 }
 
-// REFRESH TOKEN
-type refreshRequest struct {
-	RefreshToken string `json:"refreshToken" validate:"required"`
-	AccessToken  string `json:"accessToken" validate:"required"`
-}
-
+// Refresh godoc
+// @Summary Refresh access token
+// @Description Refresh access token using refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param data body xauth.RefreshRequest true "Refresh token request"
+// @Success 200 {object} xhttp.APIResponse{}
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/auth/refresh [post]
 func (h *AuthHandler) Refresh(c echo.Context) error {
 	ctx := c.Request().Context()
-	var req refreshRequest
+	var req xauth.RefreshRequest
 
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
 		return xhttp.BadRequestResponse(c, err)
@@ -96,7 +122,15 @@ func (h *AuthHandler) Refresh(c echo.Context) error {
 	})
 }
 
-// LOGOUT
+// Logout godoc
+// @Summary Logout
+// @Description Logout current user
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} xhttp.APIResponse{}
+// @Failure 401 {object} xhttp.APIResponse400Err{}
+// @Router /api/auth/logout [post]
 func (h *AuthHandler) Logout(c echo.Context) error {
 	err := h.authUC.Logout(c.Request().Context())
 
@@ -110,6 +144,16 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	})
 }
 
+// GetInfo godoc
+// @Summary Get current user info
+// @Description Get information of current authenticated user
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} xhttp.APIResponse{data=xauth.AuthInfoResult}
+// @Failure 401 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/auth/get-info [get]
 func (h *AuthHandler) GetInfo(c echo.Context) error {
 	user, err := xcontext.MustGetUser(c)
 	if err != nil {

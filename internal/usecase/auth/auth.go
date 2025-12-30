@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -42,7 +41,7 @@ func (u *authUsecase) Register(ctx context.Context, req *xuser.CreateUserRequest
 	}
 
 	if user != nil {
-		return nil, fmt.Errorf("email already exists")
+		return nil, xhttp.BadRequestErrorf("Email already exists")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -76,24 +75,14 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 
 	user, err := u.userRepo.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
-		return nil, xhttp.NewAppError(
-			"ERR_USER_NOT_FOUND",
-			"",
-			"User not found",
-			http.StatusBadRequest,
-		)
+		return nil, xhttp.BadRequestErrorf("Email not exists")
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(user.Password),
 		[]byte(password),
 	); err != nil {
-		return nil, xhttp.NewAppError(
-			"ERR_WRONG_PASSWORD",
-			"password",
-			"wrong password",
-			http.StatusBadRequest,
-		)
+		return nil, xhttp.BadRequestErrorf("Wrong password")
 	}
 
 	accessToken, refreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))
@@ -111,12 +100,7 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 		}
 
 		if !pkgtotp.Verify(*totpToken, *user.TotpSecret) {
-			return nil, xhttp.NewAppError(
-				"ERR_TOTP",
-				"",
-				"invalid totp token",
-				http.StatusBadRequest,
-			)
+			return nil, xhttp.BadRequestErrorf("Invalid totp token")
 		}
 	}
 	_ = u.queueService.PublishMessage(
@@ -165,7 +149,7 @@ func (u *authUsecase) RefreshToken(
 		return "", "", err
 	}
 	if user == nil {
-		return "", "", fmt.Errorf("user does not exist")
+		return "", "", xhttp.BadRequestErrorf("user does not exist")
 	}
 
 	newAccessToken, newRefreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))

@@ -27,15 +27,15 @@ func NewUserHandler(logger *xlogger.Logger, userUC user2.UserUsecase) *UserHandl
 
 // Create godoc
 // @Summary Create user
-// @Description Create user
+// @Description Create new user
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param data body model.CreateUserRequest true "Create user request"
-// @Success 201 {object} xhttp.APIResponse{data=model.User}
+// @Param data body xuser.CreateUserRequest true "Create user request"
+// @Success 201 {object} xhttp.APIResponse{data=xuser.User}
 // @Failure 400 {object} xhttp.APIResponse400Err{}
 // @Failure 500 {object} xhttp.APIResponse500Err{}
-// @Router /api/v2/users [post]
+// @Router /api/users [post]
 func (h *UserHandler) Create(c echo.Context) error {
 	var req xuser.CreateUserRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
@@ -53,15 +53,16 @@ func (h *UserHandler) Create(c echo.Context) error {
 
 // Get godoc
 // @Summary Get user
-// @Description Get user
+// @Description Get user by ID
 // @Tags users
 // @Accept json
 // @Produce json
 // @Param id path int true "User ID"
-// @Success 200 {object} xhttp.APIResponse{data=model.User}
+// @Success 200 {object} xhttp.APIResponse{data=xuser.User}
 // @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 404 {object} xhttp.APIResponse400Err{}
 // @Failure 500 {object} xhttp.APIResponse500Err{}
-// @Router /api/v2/users/{id} [get]
+// @Router /api/users/{id} [get]
 func (h *UserHandler) Get(c echo.Context) error {
 	var req xuser.UserIDRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
@@ -79,16 +80,16 @@ func (h *UserHandler) Get(c echo.Context) error {
 
 // Update godoc
 // @Summary Update user
-// @Description Update user
+// @Description Update user by ID
 // @Tags users
 // @Accept json
 // @Produce json
 // @Param id path int true "User ID"
-// @Param data body model.UpdateUserRequest true "Update user request"
-// @Success 200 {object} xhttp.APIResponse{data=model.User}
+// @Param data body xuser.UpdateUserRequest true "Update user request"
+// @Success 200 {object} xhttp.APIResponse{data=xuser.User}
 // @Failure 400 {object} xhttp.APIResponse400Err{}
 // @Failure 500 {object} xhttp.APIResponse500Err{}
-// @Router /api/v2/users/{id} [put]
+// @Router /api/users/{id} [put]
 func (h *UserHandler) Update(c echo.Context) error {
 	var req xuser.UpdateUserRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
@@ -106,15 +107,14 @@ func (h *UserHandler) Update(c echo.Context) error {
 
 // Delete godoc
 // @Summary Delete user
-// @Description Delete user
+// @Description Delete user by ID
 // @Tags users
-// @Accept json
 // @Produce json
 // @Param id path int true "User ID"
 // @Success 200 {object} xhttp.APIResponse{}
 // @Failure 400 {object} xhttp.APIResponse400Err{}
 // @Failure 500 {object} xhttp.APIResponse500Err{}
-// @Router /api/v2/users/{id} [delete]
+// @Router /api/users/{id} [delete]
 func (h *UserHandler) Delete(c echo.Context) error {
 	var req xuser.UserIDRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
@@ -132,22 +132,19 @@ func (h *UserHandler) Delete(c echo.Context) error {
 
 // List godoc
 // @Summary List users
-// @Description List users
+// @Description List users with pagination and filters
 // @Tags users
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number"
 // @Param limit query int false "Limit per page"
-// @Param from_date query string false "From date"
-// @Param to_date query string false "To date"
-// @Param range_by query string false "Range by"
-// @Param order_by query string false "Order by"
-// @Param sort_by query string false "Sort by"
-// @Param status query int false "Status"
-// @Success 200 {object} xhttp.APIResponse{data=model.ListUserResponse}
+// @Param sort_by query string false "Sort by field"
+// @Param order_by query string false "Order by asc/desc"
+// @Param filters query string false "JSON encoded filters"
+// @Success 200 {object} xhttp.APIResponse{data=[]xuser.User}
 // @Failure 400 {object} xhttp.APIResponse400Err{}
 // @Failure 500 {object} xhttp.APIResponse500Err{}
-// @Router /api/v2/users [get]
+// @Router /api/users [get]
 func (h *UserHandler) List(c echo.Context) error {
 	var req xuser.ListUserRequest
 	if err := xhttp.ReadAndValidateRequest(c, &req); err != nil {
@@ -178,6 +175,19 @@ func (h *UserHandler) List(c echo.Context) error {
 	return xhttp.PaginationListResponse(c, &req.PaginationOptions, res, total)
 }
 
+// UploadLocal godoc
+// @Summary Upload avatar (local)
+// @Description Upload avatar image to local storage
+// @Tags users
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param avatar formData file true "Avatar image file"
+// @Success 200 {object} xhttp.APIResponse
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 401 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/users/avatar-local [post]
 func (h *UserHandler) UploadLocal(c echo.Context) error {
 	ctx := c.Request().Context()
 	user, err := xcontext.MustGetUser(c)
@@ -210,6 +220,19 @@ func (h *UserHandler) UploadLocal(c echo.Context) error {
 	})
 }
 
+// UploadCloud godoc
+// @Summary Upload avatar (cloud)
+// @Description Upload avatar image to cloud storage
+// @Tags users
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param avatar formData file true "Avatar image file"
+// @Success 200 {object} xhttp.APIResponse
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 401 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /api/users/avatar-cloud [post]
 func (h *UserHandler) UploadCloud(c echo.Context) error {
 	ctx := c.Request().Context()
 

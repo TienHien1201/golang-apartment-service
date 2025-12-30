@@ -7,6 +7,7 @@ import (
 	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/usecase"
+	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
@@ -35,4 +36,40 @@ func (u *permissionUsecase) CreatePermission(ctx context.Context, req *model.Cre
 	}
 
 	return u.repo.CreatePermission(ctx, permission)
+}
+func (u *permissionUsecase) GetPermissionByID(ctx context.Context, permissionID uint) (*model.Permission, error) {
+	permission, err := u.repo.GetPermissionByID(ctx, permissionID)
+	if err != nil {
+		u.logger.Error("Failed to get permission", xlogger.Error(err))
+		return nil, err
+	}
+	if permission == nil {
+		return nil, xhttp.NotFoundErrorf("User with ID %d not found", permissionID)
+	}
+
+	return permission, nil
+}
+
+func (u *permissionUsecase) UpdatePermission(ctx context.Context, req *model.UpdatePermissionRequest) (*model.Permission, error) {
+	permission, err := u.GetPermissionByID(ctx, req.ID)
+	if err != nil {
+		u.logger.Error("Failed to get permission", xlogger.Error(err))
+		return nil, err
+	}
+	if req.Name != "" {
+		permission.Name = req.Name
+	}
+	if req.Endpoint != "" {
+		permission.Endpoint = req.Endpoint
+	}
+	if req.Method != "" {
+		permission.Method = req.Method
+	}
+	updatedPermission, err := u.repo.UpdatePermission(ctx, permission)
+	if err != nil {
+		u.logger.Error("Failed to update permission", xlogger.Error(err))
+		return nil, err
+	}
+	return updatedPermission, nil
+
 }

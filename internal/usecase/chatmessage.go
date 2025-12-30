@@ -2,8 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"thomas.vn/apartment_service/internal/domain/model/chatmessage"
 	"thomas.vn/apartment_service/internal/domain/repository"
@@ -28,26 +26,12 @@ func (u *chatMessageUsecase) ListChatMessages(ctx context.Context, req *chatmess
 }
 
 func (u *chatMessageUsecase) SendMessage(ctx context.Context, req *chatmessage.CreateChatMessageRequest) (*chatmessage.Response, error) {
-
-	// validate
-	if req.ChatGroupID == 0 {
-		return nil, fmt.Errorf("chat_group_id is required")
-	}
-	if req.UserIDSender == 0 {
-		return nil, fmt.Errorf("user_id_sender is required")
-	}
-	if strings.TrimSpace(req.MessageText) == "" {
-		return nil, fmt.Errorf("message_text is required")
-	}
-
-	// create entity
 	entity := &chatmessage.ChatMessage{
 		ChatGroupID:  req.ChatGroupID,
 		UserIDSender: req.UserIDSender,
 		MessageText:  req.MessageText,
 	}
 
-	// repo: create + join user
 	row, err := u.chatMessageRepository.CreateChatMessage(ctx, entity)
 	if err != nil {
 		u.logger.Error("SendMessage failed", xlogger.Error(err))

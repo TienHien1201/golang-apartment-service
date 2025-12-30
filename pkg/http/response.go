@@ -17,7 +17,10 @@ func DataResponse(c echo.Context, statusCode int, data interface{}) error {
 }
 
 func ListResponse(c echo.Context, rows interface{}, total int64) error {
-	return DataResponse(c, http.StatusOK, &ListDataResponse{Rows: rows, Total: total})
+	return DataResponse(c, http.StatusOK, &ListDataResponse{
+		Rows:  rows,
+		Total: total,
+	})
 }
 
 func SuccessResponse(c echo.Context, data interface{}) error {
@@ -33,62 +36,56 @@ func NoContentResponse(c echo.Context) error {
 }
 
 func InternalServerErrorResponse(c echo.Context) error {
-	return DataResponse(c, http.StatusInternalServerError, "Something went wrong")
+	return c.JSON(http.StatusInternalServerError, APIResponse{
+		Status:  http.StatusInternalServerError,
+		Message: "Internal Server Error",
+		Data:    nil,
+	})
 }
 
 func BadRequestResponse(c echo.Context, data interface{}) error {
-	return DataResponse(c, http.StatusBadRequest, data)
+	return c.JSON(http.StatusBadRequest, APIResponse{
+		Status:  http.StatusBadRequest,
+		Message: "Bad Request",
+		Data:    data,
+	})
+}
+
+func ForbiddenResponse(c echo.Context, data interface{}) error {
+	return c.JSON(http.StatusForbidden, APIResponse{
+		Status:  http.StatusForbidden,
+		Message: "Forbidden",
+		Data:    data,
+	})
 }
 
 func UnauthorizedResponse(c echo.Context, data interface{}) error {
-	return DataResponse(c, http.StatusUnauthorized, data)
+	return c.JSON(http.StatusUnauthorized, APIResponse{
+		Status:  http.StatusUnauthorized,
+		Message: "Unauthorized",
+		Data:    data,
+	})
 }
 
 func AppErrorResponse(c echo.Context, err error) error {
 	var appErr *AppError
 	if errors.As(err, &appErr) {
-		return DataResponse(c, appErr.Status, []*AppError{appErr})
+		return c.JSON(appErr.Status, APIResponse{
+			Status:  appErr.Status,
+			Message: appErr.Message,
+			Data:    nil,
+		})
 	}
 
 	return InternalServerErrorResponse(c)
 }
 
-func OldSuccessResponse(c echo.Context, data interface{}) error {
-	return c.JSON(http.StatusOK, OldAPIResponse{
-		Message: "Success",
-		Status:  1,
-		Code:    200,
-		Data:    data,
-	})
-}
-
-func OldListSuccessResponse(c echo.Context, data interface{}, total int64) error {
-	return c.JSON(http.StatusOK, OldAPIResponse{
-		Message: "Success",
-		Status:  1,
-		Code:    200,
-		Data:    &ListDataResponse{Rows: data, Total: total},
-	})
-}
-
-func OldErrorResponse(c echo.Context, message string, code int, data interface{}) error {
-	return c.JSON(http.StatusOK, OldAPIResponse{
-		Message: message,
-		Status:  0,
-		Code:    code,
-		Data:    data,
-	})
-}
-
-func OldBadRequestResponse(c echo.Context, data interface{}) error {
-	return OldErrorResponse(c, "Bad Request", 400, data)
-}
-
-func OldInternalErrorResponse(c echo.Context) error {
-	return OldErrorResponse(c, "Internal Server Error", 500, "Something went wrong")
-}
-
-func PaginationListResponse(c echo.Context, req *query.PaginationOptions, items interface{}, total int64) error {
+func PaginationListResponse(
+	c echo.Context,
+	req *query.PaginationOptions,
+	items interface{},
+	total int64,
+) error {
 
 	page := req.Page
 	limit := req.Limit
@@ -112,4 +109,42 @@ func PaginationListResponse(c echo.Context, req *query.PaginationOptions, items 
 		TotalPage: totalPage,
 		Items:     items,
 	})
+}
+
+func OldSuccessResponse(c echo.Context, data interface{}) error {
+	return c.JSON(http.StatusOK, OldAPIResponse{
+		Message: "Success",
+		Status:  1,
+		Code:    200,
+		Data:    data,
+	})
+}
+
+func OldListSuccessResponse(c echo.Context, data interface{}, total int64) error {
+	return c.JSON(http.StatusOK, OldAPIResponse{
+		Message: "Success",
+		Status:  1,
+		Code:    200,
+		Data: &ListDataResponse{
+			Rows:  data,
+			Total: total,
+		},
+	})
+}
+
+func OldErrorResponse(c echo.Context, message string, code int, data interface{}) error {
+	return c.JSON(http.StatusOK, OldAPIResponse{
+		Message: message,
+		Status:  0,
+		Code:    code,
+		Data:    data,
+	})
+}
+
+func OldBadRequestResponse(c echo.Context, data interface{}) error {
+	return OldErrorResponse(c, "Bad Request", 400, data)
+}
+
+func OldInternalErrorResponse(c echo.Context) error {
+	return OldErrorResponse(c, "Internal Server Error", 500, "Something went wrong")
 }

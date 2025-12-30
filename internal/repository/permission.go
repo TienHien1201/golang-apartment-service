@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -59,4 +60,30 @@ func (r *PermissionRepository) CreatePermission(ctx context.Context, permission 
 		return nil, fmt.Errorf("Create permission failed, no rows affected")
 	}
 	return permission, nil
+}
+
+func (r *PermissionRepository) UpdatePermission(ctx context.Context, permission *model.Permission) (*model.Permission, error) {
+	permission.UpdatedAt = xutils.GetTimeNow()
+	result := r.db.WithContext(ctx).Save(permission)
+	if result.Error != nil {
+		r.logger.Error("Update permission failed", xlogger.Error(result.Error))
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("Update permission failed, no rows affected")
+	}
+	return permission, nil
+}
+
+func (r *PermissionRepository) GetPermissionByID(ctx context.Context, permissionID uint) (*model.Permission, error) {
+	var permission model.Permission
+	result := r.db.WithContext(ctx).Where("id = ?", permissionID).First(&permission)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		r.logger.Error("Get permission failed", xlogger.Error(result.Error))
+		return nil, result.Error
+	}
+	return &permission, nil
 }

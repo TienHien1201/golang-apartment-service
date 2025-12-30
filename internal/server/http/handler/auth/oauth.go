@@ -7,12 +7,29 @@ import (
 	"thomas.vn/apartment_service/internal/domain/model"
 )
 
+// GoogleLogin godoc
+// @Summary Google OAuth login
+// @Description Redirect user to Google OAuth consent screen
+// @Tags auth
+// @Produce json
+// @Success 302 "Redirect to Google login page"
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Router /api/auth/google [get]
 func (h *AuthHandler) GoogleLogin(c echo.Context) error {
 	url := h.googleOAuth.AuthURL()
 	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-// Đây là luồng frontend đã xử lí sau khi đang nhập google thành công thì vào thẳng trang chủ của frontend luôn
+// GoogleCallback godoc
+// @Summary Google OAuth callback
+// @Description Handle Google OAuth callback and redirect to frontend with access & refresh tokens
+// @Tags auth
+// @Produce json
+// @Param code query string true "Authorization code from Google"
+// @Success 302 "Redirect to frontend login callback with tokens"
+// @Failure 400 {object} xhttp.APIResponse400Err{}
+// @Failure 500 {object} xhttp.APIResponse500Err{}
+// @Router /auth/google/callback [get]
 func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 	ctx := c.Request().Context()
 

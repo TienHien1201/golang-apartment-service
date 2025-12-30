@@ -57,9 +57,7 @@ func (s *Server) dispatch(c *Client, msg Message) {
 // ================= HANDLERS =================
 
 func (s *Server) handleAuth(c *Client, msg Message) {
-	var p struct {
-		AccessToken string `json:"accessToken"`
-	}
+	var p Auth
 	if err := json.Unmarshal(msg.Payload, &p); err != nil {
 		return
 	}
@@ -73,9 +71,7 @@ func (s *Server) handleAuth(c *Client, msg Message) {
 }
 
 func (s *Server) handleJoinRoom(c *Client, msg Message) {
-	var p struct {
-		ChatGroupID int `json:"chatGroupId"`
-	}
+	var p JoinGroupPayload
 	if err := json.Unmarshal(msg.Payload, &p); err != nil {
 		return
 	}
@@ -86,11 +82,7 @@ func (s *Server) handleJoinRoom(c *Client, msg Message) {
 }
 
 func (s *Server) handleCreateRoom(c *Client, msg Message) {
-	var p struct {
-		TargetUserIDs []int64 `json:"targetUserIDs"`
-		AccessToken   string  `json:"accessToken"`
-		Name          string  `json:"name"`
-	}
+	var p CreateRoomPayload
 	if err := json.Unmarshal(msg.Payload, &p); err != nil {
 		return
 	}
@@ -124,11 +116,7 @@ func (s *Server) handleCreateRoom(c *Client, msg Message) {
 	c.Send <- resp
 }
 func (s *Server) handleSendMessage(c *Client, msg Message) {
-	var p struct {
-		Message     string `json:"message"`
-		ChatGroupID int    `json:"chatGroupId"`
-		AccessToken string `json:"accessToken"`
-	}
+	var p SendMessagePayload
 	if err := json.Unmarshal(msg.Payload, &p); err != nil {
 		return
 	}

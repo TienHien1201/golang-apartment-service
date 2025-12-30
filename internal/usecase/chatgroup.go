@@ -2,12 +2,12 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 
 	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model/chatgroup"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/usecase"
+	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
@@ -34,7 +34,7 @@ func (u *ChatGroupUsecase) ListChatGroups(
 func (u *ChatGroupUsecase) CreateChatGroup(ctx context.Context, req *chatgroup.CreateChatGroupRequest) (*chatgroup.ChatGroup, error) {
 
 	if len(req.TargetUserIDs) == 0 {
-		return nil, fmt.Errorf("target users is required")
+		return nil, xhttp.BadRequestErrorf("target users is required")
 	}
 
 	userIDs := append(req.TargetUserIDs, req.OwnerID)
