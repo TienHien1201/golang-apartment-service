@@ -20,3 +20,11 @@ func MustGetUser(c echo.Context) (*xuser.User, error) {
 	}
 	return user, nil
 }
+
+func GetUserID(c echo.Context) (int, error) {
+	user, err := MustGetUser(c)
+	if err != nil {
+		return 0, err
+	}
+	return user.ID, nil
+}

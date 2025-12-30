@@ -7,4 +7,5 @@ const (
 	UserStatusInactive = 0
 	NotDeleted         = 0
 	DefaultUserRoleID  = 2
+	UserAdmin          = 1
 )

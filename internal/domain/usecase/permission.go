@@ -1,7 +1,12 @@
 package usecase
 
-import "context"
+import (
+	"context"
+
+	"thomas.vn/apartment_service/internal/domain/model"
+)
 
 type PermissionUsecase interface {
-	CheckPermission(ctx context.Context, roleID int, method string, endpoint string) (bool, error)
+	CheckPermission(ctx context.Context, request model.CheckPermissionRequest) (bool, error)
+	CreatePermission(ctx context.Context, req *model.CreatePermissionRequest, userID int) (*model.Permission, error)
 }

@@ -8,6 +8,7 @@ import (
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatgroup"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
+	"thomas.vn/apartment_service/internal/server/http/handler/permission"
 	"thomas.vn/apartment_service/internal/server/http/handler/root"
 	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
 	xuser "thomas.vn/apartment_service/internal/server/http/handler/user"
@@ -77,7 +78,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	chatGroupUc := usecase.NewChatGroupUsecase(logger, chatGroupRepo)
 	authUC := auth2.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
 	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
-	permissionUC := usecase.NewPermissionUsecase(permissionRepo)
+	permissionUC := usecase.NewPermissionUsecase(logger, permissionRepo)
 	mailUC := usecase.NewMailUsecase(mailer)
 	totpUc := totp.NewTotpUsecase(logger, userRepo)
 	chatWsUC := usecase.NewChatUcase(logger, chatGroupUc, chatMessageUC)
@@ -93,7 +94,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	permissionMiddlewareHandler := xmiddleware.NewPermissionMiddleware(permissionUC)
 	tOtpHandler := xtotp.NewHandler(logger, xtotp.WithTotpUsecase(totpUc))
 	articleHandler := articles.NewHandler(logger, articles.WithArticleUsecase(articleUc))
-
+	permissionHandler := permission.NewHandler(logger, permission.WithPermissionUsecase(permissionUC))
 	hub := ws.NewHub()
 	wsServer := &ws.Server{Hub: hub, ChatUC: chatWsUC, Token: tokenSvc}
 	wsHandler := ws.NewHandler(wsServer)
@@ -111,6 +112,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 		chatGroupHandler,
 		wsHandler,
 		articleHandler,
+		permissionHandler,
 	)
 
 	//========= Create job ==============

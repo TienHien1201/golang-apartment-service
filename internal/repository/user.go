@@ -143,11 +143,7 @@ func (r *userRepository) ListUsers(ctx context.Context, req *xuser.ListUserReque
 	return users, total, nil
 }
 
-func (r *userRepository) UpdateTotpSecret(
-	ctx context.Context,
-	userID int64,
-	secret *string,
-) error {
+func (r *userRepository) UpdateTotpSecret(ctx context.Context, userID int64, secret *string) error {
 	result := r.userTable.
 		WithContext(ctx).
 		Model(&xuser.User{}).

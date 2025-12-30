@@ -7,6 +7,7 @@ import (
 	xAuth "thomas.vn/apartment_service/internal/server/http/handler/auth"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatgroup"
 	"thomas.vn/apartment_service/internal/server/http/handler/chatmessage"
+	"thomas.vn/apartment_service/internal/server/http/handler/permission"
 	xtotp "thomas.vn/apartment_service/internal/server/http/handler/totp"
 	xmiddleware "thomas.vn/apartment_service/pkg/http/middleware"
 	ws "thomas.vn/apartment_service/pkg/websocket"
@@ -28,6 +29,7 @@ type handler struct {
 	chatGroup            *chatgroup.Handler
 	wsHandler            *ws.Handler
 	article              *articles.Handler
+	permission           *permission.Handler
 }
 
 func NewHTTPHandler(
@@ -42,6 +44,7 @@ func NewHTTPHandler(
 	chatGroup *chatgroup.Handler,
 	wsHandler *ws.Handler,
 	article *articles.Handler,
+	permission *permission.Handler,
 ) xhttp.Handler {
 	return &handler{
 		logger:               logger,
@@ -55,6 +58,7 @@ func NewHTTPHandler(
 		chatGroup:            chatGroup,
 		wsHandler:            wsHandler,
 		article:              article,
+		permission:           permission,
 	}
 }
 
@@ -88,6 +92,9 @@ func (h *handler) RegisterRoutes(e *echo.Echo) {
 
 	// Articles routes
 	h.registerArticleRoutes(api)
+
+	//Permission routes
+	h.registerPermissionRoutes(api)
 
 	// WebSocket
 	e.GET("/ws", h.wsHandler.Handle())
@@ -160,5 +167,12 @@ func (h *handler) registerArticleRoutes(e *echo.Group) {
 	{
 		chat.GET("/all", h.article.Articles().List, h.authMiddleware.Protect)
 		chat.GET("", h.article.Articles().List, h.authMiddleware.Protect, h.permissionMiddleware.Check)
+	}
+}
+
+func (h *handler) registerPermissionRoutes(e *echo.Group) {
+	chat := e.Group("/permission")
+	{
+		chat.POST("", h.permission.Permission().Create, h.authMiddleware.Protect, h.permissionMiddleware.Check)
 	}
 }

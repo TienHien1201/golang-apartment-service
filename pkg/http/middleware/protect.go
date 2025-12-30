@@ -63,7 +63,6 @@ func (m *AuthMiddleware) Protect(next echo.HandlerFunc) echo.HandlerFunc {
 		if user == nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Not User")
 		}
-
 		c.Set(string(UserContextKey), user)
 
 		return next(c)

@@ -15,6 +15,7 @@ func NewMySQLMigrator(name string, db *gorm.DB) *xmysqlmigration.Migrator {
 func GetMySQLMigrations() []xmigration.Migration {
 	return []xmigration.Migration{
 		mysqlmg.AddIsActiveToUsers{},
+		mysqlmg.AddCreatedByToPermission{},
 		// Add more migrations here
 	}
 }

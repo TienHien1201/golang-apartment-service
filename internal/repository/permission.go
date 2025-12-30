@@ -2,9 +2,12 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
+	"thomas.vn/apartment_service/internal/domain/model"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
+	xutils "thomas.vn/apartment_service/pkg/utils"
 )
 
 type PermissionRepository struct {
@@ -22,7 +25,7 @@ func NewPermissionRepository(
 	}
 }
 
-func (r *PermissionRepository) HasPermission(ctx context.Context, roleID int, method string, endpoint string) (bool, error) {
+func (r *PermissionRepository) HasPermission(ctx context.Context, request model.CheckPermissionRequest) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Table("role_permission rp").
@@ -32,7 +35,7 @@ func (r *PermissionRepository) HasPermission(ctx context.Context, roleID int, me
 			AND rp.is_active = 1
 			AND p.method = ?
 			AND p.endpoint = ?
-		`, roleID, method, endpoint).
+		`, request.RoleID, request.Method, request.Endpoint).
 		Count(&count).Error
 
 	if err != nil {
@@ -41,4 +44,19 @@ func (r *PermissionRepository) HasPermission(ctx context.Context, roleID int, me
 	}
 
 	return count > 0, nil
+}
+
+func (r *PermissionRepository) CreatePermission(ctx context.Context, permission *model.Permission) (*model.Permission, error) {
+	permission.CreatedAt = xutils.GetTimeNow()
+	permission.UpdatedAt = xutils.GetTimeNow()
+
+	result := r.db.WithContext(ctx).Create(permission)
+	if result.Error != nil {
+		r.logger.Error("Create permission failed", xlogger.Error(result.Error))
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("Create permission failed, no rows affected")
+	}
+	return permission, nil
 }
