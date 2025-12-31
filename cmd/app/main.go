@@ -28,9 +28,9 @@ func init() {
 	flag.StringVar(&Env, "env", Env, "Environment")
 }
 
-// @title Apartment API
+// @title Apartment Business API
 // @version 1.0
-// @description This is an apartment system API
+// @description This is an Apartment business system API
 // @BasePath /
 // @host localhost:1424
 // @schemes http

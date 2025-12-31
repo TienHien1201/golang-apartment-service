@@ -1,13 +1,61 @@
-extends: base
 app:
-  env: dev
+  env: local
+  debug: true
+
+server:
+  http:
+    host:
+    port: 1424
+    timeout: 30s
+
+logger:
+  level: debug
+  format: console
+  output: stdout
 
 database:
   mysql:
-    # host: 1.1.1.1
+    host: service-mysql   # TÊN SERVICE
+    port: 3306            # PORT TRONG CONTAINER
+    database: staging_db
+    username: root
+    password: 8000
+    timezone: Local
+    parseTime: true
+    maxIdleConns: 5
+    maxOpenConns: 100
+    connMaxLifetime: 120
+
+  redis:
     host: localhost
+    port: 6379
+    password: ''
+    db: 0
+    poolSize: 12000
+    minIdleConns: 2
+    poolTimeout: 60
 
   elasticSearch:
     addresses:
-#      - http://1.1.1.1:9200
       - http://localhost:9200
+    username: 'elastic'
+    password: '8000'
+    enableLogging: true
+
+jwt:
+  access_secret: "ACCESS_TOKEN_SECRET"
+  refresh_secret: "REFRESH_TOKEN_SECRET"
+  access_expire: 168h
+  refresh_expire: 720h
+  token_type: Bearer
+
+auth:
+  google:
+    client_id:
+    client_secret:
+    callback_url:
+
+cloudinary:
+  cloud_name:
+  api_key:
+  api_secret:

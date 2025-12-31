@@ -15,9 +15,9 @@ logger:
 
 database:
   mysql:
-    host: localhost
-    port: 3307
-    database: aklht_apartment
+    host: service-mysql   # TÊN SERVICE
+    port: 3306            # PORT TRONG CONTAINER
+    database: staging_db
     username: root
     password: 8000
     timezone: Local

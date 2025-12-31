@@ -1,0 +1,23 @@
+name: cd
+
+on: 
+    workflow_run: 
+        workflows: ["ci"]
+        types: 
+            - completed
+jobs: 
+    start: 
+        runs-on: be-apartment_bussiness
+
+        steps: 
+        # chạy lần đầu thành công r lần sau comment lại để k mất hết dữ liệu db. Chạy lần đầu nhớ mở cái dòng này ra
+        # - name: Chạy lần đầu
+        #   run: sudo docker compose up -d 
+
+        # Chạy lần đầu nhớ comment 4 dòng dưới lại , sau khi chạy lần đầu thành công rồi thì mở ra
+        - name: Kéo image mới về
+          run : sudo docker compose pull service-apartment_bussiness
+
+        - name: Tạo lại container be-aparment_bussiness
+          run: sudo docker compose up -d --no-deps --force-recreate service-apartment_bussiness
+
