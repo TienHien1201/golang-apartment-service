@@ -18,8 +18,8 @@ jobs:
 
         # Chạy lần đầu nhớ comment 4 dòng dưới lại , sau khi chạy lần đầu thành công rồi thì mở ra
         - name: Kéo image mới về
-          run : sudo docker compose pull tienhiendev/img_be_apartment_bussiness
+          run : sudo docker compose pull service_apartment_business
 
         - name: Tạo lại container con_be_apartment_business
-          run: sudo docker compose up -d --no-deps --force-recreate tienhiendev/img_be_apartment_bussiness
+          run: sudo docker compose up -d --no-deps --force-recreate service_apartment_business
 
