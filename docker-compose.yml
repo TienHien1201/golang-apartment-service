@@ -38,7 +38,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: 8000
-      MYSQL_DATABASE: staging_db
+      MYSQL_DATABASE: aklht_apartment
       TZ: Asia/Ho_Chi_Minh
     ports:
       - "3306:3306"
@@ -48,6 +48,13 @@ services:
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     networks:
       - apartment_network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-p8000" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.8.23
     container_name: apartment_elasticsearch
