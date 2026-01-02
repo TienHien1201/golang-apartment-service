@@ -11,7 +11,8 @@ services:
     volumes:
       - ./config:/app/config
     depends_on:
-      - service-mysql
+      service-mysql:
+        condition: service_healthy
     networks:
       - apartment_network
 
