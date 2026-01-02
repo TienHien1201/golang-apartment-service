@@ -15,9 +15,9 @@ logger:
 
 database:
   mysql:
-    host: service-mysql   # TÊN SERVICE
-    port: 3306            # PORT TRONG CONTAINER
-    database: staging_db
+    host: service-mysql
+    port: 3306
+    database: aklht_apartment
     username: root
     password: 8000
     timezone: Local
@@ -27,7 +27,7 @@ database:
     connMaxLifetime: 120
 
   redis:
-    host: localhost
+    host: apartment_redis
     port: 6379
     password: ''
     db: 0
@@ -37,7 +37,7 @@ database:
 
   elasticSearch:
     addresses:
-      - http://localhost:9200
+      - http://apartment_elasticsearch:9200
     username: 'elastic'
     password: '8000'
     enableLogging: true

@@ -12,6 +12,9 @@ services:
       - ./config:/app/config
     depends_on:
       - service-mysql
+    networks:
+      - apartment_network
+
   redis:
     image: redis:7.2-alpine
     container_name: apartment_redis
@@ -28,6 +31,7 @@ services:
     restart: unless-stopped
     networks:
       - apartment_network
+
   service-mysql:
     image: mysql:8.0
     container_name: aklht_apartment
