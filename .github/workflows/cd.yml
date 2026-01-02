@@ -1,23 +1,30 @@
 name: cd
 
-on: 
-    workflow_run: 
-        workflows: ["ci"]
-        types: 
-            - completed
-jobs: 
-    start: 
-        runs-on: be-apartment_business
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types:
+      - completed
+    conclusions:
+      - success
 
-        steps: 
-        # chạy lần đầu thành công r lần sau comment lại để k mất hết dữ liệu db. Chạy lần đầu nhớ mở cái dòng này ra
-         - name: Chạy lần đầu
-           run: sudo docker compose up -d
+jobs:
+  start:
+    runs-on:
+      - self-hosted
+      - be-apartment_business
 
-        # Chạy lần đầu nhớ comment 4 dòng dưới lại , sau khi chạy lần đầu thành công rồi thì mở ra
-#        - name: Kéo image mới về
-#          run : sudo docker compose pull service-apartment_bussiness
-#
-#        - name: Tạo lại container be-aparment_bussiness
-#          run: sudo docker compose up -d --no-deps --force-recreate service-apartment_bussiness
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      # Chạy lần đầu (init)
+      - name: Chạy lần đầu
+        run: docker compose up -d
+
+      # Sau lần đầu thì dùng block này
+      # - name: Kéo image mới
+      #   run: docker compose pull service-apartment_business
+      #
+      # - name: Recreate container
+      #   run: docker compose up -d --no-deps --force-recreate service-apartment_business
