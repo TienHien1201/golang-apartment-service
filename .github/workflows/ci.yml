@@ -15,7 +15,7 @@ jobs:
               run: docker login -u tienhiendev -p ${{secrets.DOCKER_PASS}}
 
             - name: Build image
-              run: docker build -t tienhiendev/img_be_apartment_bussiness:latest .
+              run: docker image build -t tienhiendev/img_be_apartment_bussiness:latest .
 
             - name: Push Image lên docker hub 
               run: docker push tienhiendev/img_be_apartment_bussiness:latest
