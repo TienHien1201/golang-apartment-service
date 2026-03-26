@@ -1,22 +1,525 @@
-###############
-Docker container
-
-- Redis
-```
-docker run -d --name apartment_redis --network apartment_network -p 6379:6379 -v redis_data:/data redis:7.2-alpine
-```
-
--  Elasticsearch
-```
-docker run -d --name apartment_elasticsearch --network apartment_network -p 9200:9200 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:6.8.23
-```
-
-
-
+################################################################################
+#                                                                              #
+#           GO APARTMENT SERVICE — HƯỚNG DẪN ĐẦY ĐỦ                          #
+#           Từ local dev → build → push → auto deploy lên server              #
+#           Cập nhật: 2026-03                                                  #
+#                                                                              #
+################################################################################
 
 ================================================================================
-DOCKER COMPOSE — CẤU TRÚC & HƯỚNG DẪN SỬ DỤNG
-Cập nhật: 2026-03
+PHẦN 1: TỔNG QUAN HỆ THỐNG
+================================================================================
+
+  Stack kỹ thuật:
+    - Go 1.24 + Echo v4 + GORM
+    - MySQL 8.0, Redis 7.2, Elasticsearch 6.8
+    - Docker multi-stage build (golang:1.24-alpine → alpine:3.21, ~35-45 MB)
+    - GitHub Actions CI/CD (ubuntu-latest CI, self-hosted runner CD)
+    - Docker Hub: tienhiendev/service_apartment_business
+
+  Luồng tổng thể:
+    [Máy dev] code → git push main
+         ↓
+    [GitHub CI] lint → test → build image → push Docker Hub
+         ↓
+    [GitHub CD] self-hosted runner → checkout → .env check → docker compose pull
+             → recreate backend → health check pass ✅
+
+================================================================================
+PHẦN 2: CẤU TRÚC FILE QUAN TRỌNG
+================================================================================
+
+  .env                         ← Secrets thật (KHÔNG bao giờ commit lên git)
+  .env.example                 ← Template — commit, team dùng để tham khảo
+
+  config/
+    base.yaml                  ← Defaults chung cho mọi env
+    dev.yaml                   ← Override cho local dev
+    prod.yaml                  ← Override cho production (json log, pool lớn)
+
+  docker-compose.yml           ← PRODUCTION: pull image từ Docker Hub
+  docker-compose.override.yml  ← LOCAL DEV: build từ Dockerfile (auto-merge)
+  Dockerfile                   ← Multi-stage build, BuildKit cache
+
+  .github/workflows/
+    ci.yml                     ← Lint → Test → Build → Push image
+    cd.yml                     ← Deploy tự động sau khi CI pass
+
+  /root/apartment-service-secrets/.env   ← Secrets store trên SERVER
+                                            (nằm ngoài git workspace, an toàn)
+
+================================================================================
+PHẦN 3: SETUP MÁY DEV — LẦN ĐẦU (chỉ làm 1 lần)
+================================================================================
+
+  ── 3.1 Yêu cầu cài đặt ────────────────────────────────────────────────────
+
+    - Go 1.24+          : https://go.dev/dl/
+    - Docker Desktop    : https://www.docker.com/products/docker-desktop/
+    - golangci-lint     : go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+    - wire              : go install github.com/google/wire/cmd/wire@latest
+
+  ── 3.2 Clone và chuẩn bị ──────────────────────────────────────────────────
+
+    git clone https://github.com/TienHien1201/golang-apartment-service.git
+    cd golang-apartment-service
+
+    # Tạo .env từ template và điền secrets thật
+    cp .env.example .env
+
+  ── 3.3 Điền .env đúng cách ─────────────────────────────────────────────────
+
+    Mở .env và điền các giá trị sau (QUAN TRỌNG):
+
+    # JWT secrets — tạo ngẫu nhiên, tối thiểu 32 ký tự
+    APARTMENT_APP_JWT_ACCESS_SECRET=<random 48 chars>
+    APARTMENT_APP_JWT_REFRESH_SECRET=<random 48 chars>
+
+    # Tạo secret mạnh bằng lệnh:
+    #   openssl rand -base64 48
+
+    # MySQL — dùng password mạnh kể cả local
+    APARTMENT_APP_DATABASE_MYSQL_PASSWORD=<your_password>
+
+    # Google OAuth — lấy từ Google Cloud Console
+    APARTMENT_APP_AUTH_GOOGLE_CLIENT_ID=...
+    APARTMENT_APP_AUTH_GOOGLE_CLIENT_SECRET=...
+    APARTMENT_APP_AUTH_GOOGLE_CALLBACK_URL=http://localhost:1424/api/auth/google/callback
+
+    # Cloudinary — lấy từ cloudinary.com dashboard
+    APARTMENT_APP_CLOUDINARY_CLOUD_NAME=...
+    APARTMENT_APP_CLOUDINARY_API_KEY=...
+    APARTMENT_APP_CLOUDINARY_API_SECRET=...
+
+    # Mailer
+    APARTMENT_APP_MAILER_SMTP_USER=your@gmail.com
+    APARTMENT_APP_MAILER_SMTP_PASS=your_app_password
+
+================================================================================
+PHẦN 4: LÀM VIỆC LOCAL HÀNG NGÀY
+================================================================================
+
+  ── 4.1 Khởi động stack lần đầu ─────────────────────────────────────────────
+
+    # Build từ source và chạy toàn bộ stack (MySQL + Redis + ES + Backend)
+    DOCKER_BUILDKIT=1 docker compose up -d --build
+
+    # Hoặc dùng Makefile:
+    make docker-dev
+
+    # Xem log backend để chắc chắn connect OK
+    docker compose logs -f service_apartment_business
+
+    # Log bình thường sẽ thấy:
+    #   [mysql] attempt 1/12 failed: ... — retrying in 2s   ← backend chờ MySQL
+    #   [mysql] attempt 2/12 failed: ... — retrying in 4s
+    #   Starting app v1.0.0 (dev)                            ← connect OK
+
+  ── 4.2 Các lệnh thường dùng ─────────────────────────────────────────────────
+
+    make docker-dev          → build lại + chạy (dùng khi thay đổi code muốn build ngay)
+    make docker-logs         → xem log backend real-time
+    make docker-restart-be   → restart chỉ backend, không đụng DB/Redis/ES
+    make docker-down         → dừng toàn bộ stack
+    make docker-clean        → dừng + xóa containers + images cũ + orphan volumes
+
+    # Chạy backend không dùng Docker (cần MySQL/Redis đã chạy):
+    make dev                 → go run ./cmd/app/main.go --env=dev
+
+  ── 4.3 Kiểm tra health ──────────────────────────────────────────────────────
+
+    docker compose ps
+    # Tất cả STATUS phải là: Up (healthy)
+
+    # Nếu backend không healthy, xem log:
+    docker compose logs --tail=50 service_apartment_business
+    docker inspect --format='{{.State.Health.Status}}' con_be_apartment_business
+
+  ── 4.4 Dọn dẹp khi có vấn đề ───────────────────────────────────────────────
+
+    # Xóa sạch và chạy lại từ đầu (KHÔNG xóa volumes — giữ data DB)
+    docker compose down --remove-orphans
+    docker image prune -f
+    DOCKER_BUILDKIT=1 docker compose up -d --build
+
+    # Xóa LUÔN volumes (reset sạch DB — MẤT DATA):
+    docker compose down --volumes --remove-orphans
+
+================================================================================
+PHẦN 5: SETUP SERVER PRODUCTION — LẦN ĐẦU (chỉ làm 1 lần)
+================================================================================
+
+  ── 5.1 Yêu cầu trên server ─────────────────────────────────────────────────
+
+    - Docker Engine + Docker Compose Plugin đã cài
+    - GitHub self-hosted runner đã đăng ký với label: be-apartment_business
+    - Runner đang chạy: sudo systemctl status actions.runner.*
+
+  ── 5.2 Tạo secrets store (QUAN TRỌNG — chỉ làm 1 lần) ─────────────────────
+
+    # Lý do cần secrets store:
+    # - .env bị gitignore, không có trong git
+    # - actions/checkout xóa file gitignored nếu clean: true
+    # - Secrets store nằm NGOÀI workspace → không bao giờ bị xóa
+
+    # Từ MÁY DEV, chạy các lệnh sau:
+
+    # Bước 1: Điền .env production đúng (thay localhost bằng domain thật)
+    # - APARTMENT_APP_AUTH_GOOGLE_CALLBACK_URL=https://your-domain.com/api/auth/google/callback
+    # - Tất cả password/secret phải là giá trị THẬT (không phải placeholder)
+
+    # Bước 2: Copy .env lên secrets store trên server
+    ssh root@YOUR_SERVER_IP "mkdir -p /root/apartment-service-secrets"
+    scp .env root@YOUR_SERVER_IP:/root/apartment-service-secrets/.env
+    ssh root@YOUR_SERVER_IP "chmod 600 /root/apartment-service-secrets/.env"
+
+    # Kiểm tra thành công:
+    ssh root@YOUR_SERVER_IP "ls -la /root/apartment-service-secrets/"
+    # Phải thấy: -rw------- 1 root root ... .env
+
+  ── 5.3 Setup GitHub Secrets (phục vụ CI push Docker Hub) ───────────────────
+
+    Vào: GitHub repo → Settings → Secrets and variables → Actions → New secret
+
+    DOCKERHUB_USERNAME  = tienhiendev
+    DOCKERHUB_TOKEN     = <Access Token từ hub.docker.com>
+                          (hub.docker.com → Account Settings → Security → New token)
+                          KHÔNG dùng password thật — dùng Access Token
+
+  ── 5.4 Kiểm tra runner đang hoạt động ──────────────────────────────────────
+
+    # Trên server:
+    sudo systemctl status actions.runner.*
+    # Phải thấy: Active (running)
+
+    # Nếu chưa cài runner, xem hướng dẫn:
+    # GitHub repo → Settings → Actions → Runners → New self-hosted runner
+
+  ── 5.5 Kết nối MySQL production từ TablePlus (qua SSH Tunnel) ───────────────
+
+    MySQL chạy trong Docker, KHÔNG expose ra internet trực tiếp.
+    Cần dùng SSH Tunnel để kết nối an toàn từ máy dev.
+
+    Cấu hình trong TablePlus:
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  CONNECTION (MySQL)                                             │
+    │  ─────────────────────────────────────────────────────────────  │
+    │  Name     : aklht-apartment                                     │
+    │  Host/IP  : 127.0.0.1          ← localhost CỦA SERVER          │
+    │  Port     : 3306               ← port MySQL trong Docker        │
+    │  User     : root                                                │
+    │  Password : 8000               ← MYSQL_ROOT_PASSWORD           │
+    │  Database : aklht_apartment    ← để trống = xem tất cả DB      │
+    │                                                                 │
+    │  ☑ Over SSH                                                     │
+    │  ─────────────────────────────────────────────────────────────  │
+    │  Server   : 10.54.55.14        ← IP server của bạn             │
+    │  Port     : 2222               ← SSH port                      │
+    │  User     : ubuntu (hoặc root) ← SSH user                      │
+    │  ☑ Use SSH Key  →  privatekey  ← file private key SSH          │
+    └─────────────────────────────────────────────────────────────────┘
+
+    LƯU Ý QUAN TRỌNG:
+    - Port phải là 3306 (không phải 3307) — docker-compose map 3306:3306
+    - Host/IP điền 127.0.0.1 (localhost của SERVER, không phải máy dev)
+    - SSH Key: chọn đúng file private key (.pem hoặc không có extension)
+      trên MÁY DEV của bạn (key pair với public key đã add vào server)
+    - Nếu dùng root SSH: thay User SSH thành "root", Port SSH: 22 (hoặc 2222)
+
+    Cách lấy SSH private key:
+    - Key thường nằm ở: C:\Users\<tên>\\.ssh\id_rsa  (Windows)
+    - Hoặc key .pem download từ cloud provider (DigitalOcean, AWS, v.v.)
+    - Nếu dùng passphrase khi tạo key → điền vào ô Passphrase
+
+    Test kết nối: bấm "Test" trong TablePlus
+    - Nếu pass: bấm "Connect" → thấy database aklht_apartment
+    - Nếu fail: kiểm tra firewall server (port 2222 hoặc 22 phải mở)
+
+================================================================================
+PHẦN 6: LUỒNG CI/CD TỰ ĐỘNG (push code → server tự update)
+================================================================================
+
+  ── 6.1 Luồng hoạt động ─────────────────────────────────────────────────────
+
+    DEV: git push origin main
+         │
+         ▼
+    [GitHub CI — ubuntu-latest]
+    ① Checkout code
+    ② go mod download  (luôn download, không phụ thuộc cache)
+    ③ go mod verify
+    ④ golangci-lint v1.64.8  (typecheck, staticcheck, errcheck...)
+    ⑤ go test -race ./...
+    ⑥ docker buildx build --cache-from/to gha  (BuildKit, nhanh ~15-30s lần sau)
+    ⑦ docker push tienhiendev/service_apartment_business:latest + sha-xxxx
+         │
+         │ (chỉ khi CI pass)
+         ▼
+    [GitHub CD — self-hosted runner be-apartment_business]
+    ① actions/checkout@v4 (clean: false — giữ .env nếu có)
+    ② Kiểm tra .env (3-layer fallback):
+       Layer 1: .env có trong workspace → dùng ngay
+       Layer 2: copy từ /root/apartment-service-secrets/.env → dùng
+       Layer 3: không có → print hướng dẫn → exit 1
+    ③ docker compose up -d --remove-orphans  (đảm bảo stack chạy)
+    ④ docker compose pull service_apartment_business  (pull image mới)
+    ⑤ docker compose up -d --no-deps --force-recreate service_apartment_business
+    ⑥ Chờ health check xanh (tối đa 120s, check mỗi 5s)
+    ⑦ docker image prune -f  (dọn image cũ tiết kiệm disk)
+
+  ── 6.2 Trigger CI/CD ───────────────────────────────────────────────────────
+
+    # Deploy thông thường (push code mới):
+    git add .
+    git commit -m "feat: your feature"
+    git push origin main
+
+    # Trigger CD mà không thay đổi code (dùng khi đổi config server):
+    git commit --allow-empty -m "ci: trigger CD"
+    git push origin main
+
+    # Release version tag (tạo thêm image tag v1.0.0, 1.0):
+    git tag v1.0.1
+    git push origin v1.0.1
+
+  ── 6.3 Theo dõi CI/CD trên GitHub ─────────────────────────────────────────
+
+    Vào: GitHub repo → Actions tab
+    - CI "Build & Push" phải xanh trước
+    - CD "Deploy" chạy ngay sau khi CI xanh
+    - Xem log từng step để debug nếu fail
+
+================================================================================
+PHẦN 7: MONITOR & OPERATE TRÊN SERVER
+================================================================================
+
+  ── 7.1 Kiểm tra trạng thái sau deploy ──────────────────────────────────────
+
+    # SSH vào server, cd vào workspace của runner:
+    cd /root/home/actions-runner/be-apartment_business/_work/golang-apartment-service/golang-apartment-service
+
+    # Xem trạng thái tất cả containers
+    docker compose ps
+
+    # Xem log backend (50 dòng gần nhất)
+    docker compose logs --tail=50 service_apartment_business
+
+    # Xem log real-time
+    docker compose logs -f service_apartment_business
+
+    # Kiểm tra health status của backend
+    docker inspect --format='{{.State.Health.Status}}' con_be_apartment_business
+
+  ── 7.2 Xử lý backend không healthy ─────────────────────────────────────────
+
+    # Xem lý do:
+    docker compose logs service_apartment_business | tail -100
+
+    # Restart thủ công backend (không đụng DB):
+    docker compose up -d --no-deps --force-recreate service_apartment_business
+
+    # Nếu cần restart toàn bộ stack:
+    docker compose down --remove-orphans
+    docker compose up -d
+
+  ── 7.3 Cập nhật .env trên server ────────────────────────────────────────────
+
+    # Khi cần thay đổi secret (không cần push code):
+    # Từ máy dev:
+    scp .env root@YOUR_SERVER_IP:/root/apartment-service-secrets/.env
+
+    # Sau đó trigger deploy để backend load secret mới:
+    git commit --allow-empty -m "ci: reload env"
+    git push origin main
+
+  ── 7.4 Xem tài nguyên ───────────────────────────────────────────────────────
+
+    docker stats --no-stream                     # CPU/RAM mỗi container
+    docker system df                             # Disk usage toàn bộ Docker
+    docker image prune -f                        # Dọn image không dùng
+
+================================================================================
+PHẦN 8: CONFIG & SECRETS — NGUYÊN TẮC
+================================================================================
+
+  Thứ tự ưu tiên đọc config (sau ghi đè trước):
+    1. config/base.yaml       (base defaults)
+    2. config/{env}.yaml      (override theo --env flag: dev / prod)
+    3. APARTMENT_APP_* env    (override TẤT CẢ — nguồn secrets chính)
+
+  Mapping biến môi trường:
+    APARTMENT_APP_DATABASE_MYSQL_PASSWORD  → database.mysql.password
+    APARTMENT_APP_JWT_ACCESS_SECRET        → jwt.access_secret
+    APARTMENT_APP_CLOUDINARY_API_SECRET    → cloudinary.api_secret
+    (quy tắc: thay dấu . bằng _ và viết hoa toàn bộ, prefix APARTMENT_APP_)
+
+  Nguyên tắc bảo mật:
+    ✅ .env.example  — commit lên git (template, không chứa secret thật)
+    ✅ config/*.yaml — commit lên git (không chứa secret, chỉ config)
+    ❌ .env          — KHÔNG commit, có trong .gitignore
+    ❌ Không hardcode secret trong code hay Dockerfile
+
+================================================================================
+PHẦN 9: MAKEFILE SHORTCUTS
+================================================================================
+
+  Local Docker:
+    make docker-dev         → build từ source + chạy stack
+    make docker-prod        → pull image từ registry + chạy stack
+    make docker-push        → build + push image lên Docker Hub
+    make docker-logs        → xem log backend real-time
+    make docker-restart-be  → restart chỉ backend
+    make docker-down        → dừng toàn bộ stack
+    make docker-clean       → dừng + xóa containers + images cũ
+
+  Local Go (không Docker):
+    make dev                → go run (cần DB/Redis đang chạy riêng)
+    make build-dev          → build binary dev
+    make build-prod         → build binary production (-ldflags="-s -w")
+    make lint               → chạy golangci-lint
+    make test               → go test -race ./...
+
+  Migration:
+    make migrate ENV=dev DB=mysql COMMAND=up STEPS=1
+    make migrate ENV=dev DB=mysql COMMAND=down STEPS=1
+
+  Swagger:
+    make gen-swagger        → generate swagger docs
+
+================================================================================
+PHẦN 10: BUILD SIZE — TRƯỚC vs SAU TỐI ƯU
+================================================================================
+
+  TRƯỚC:
+    Docker image: ~70-80 MB
+    Build flags : không có -trimpath, không có -s -w
+    Cache        : không có BuildKit cache
+
+  SAU:
+    Docker image: ~35-45 MB  (giảm ~50%)
+    Build flags : -trimpath -s -w (strip debug info + DWARF)
+    Cache        : BuildKit mount cache (go/pkg/mod + go-build)
+    Non-root     : appuser trong container (bảo mật)
+    HEALTHCHECK  : tích hợp sẵn trong image
+    .dockerignore: loại docs/test/git/IDE khỏi build context
+
+  Build lần đầu  : ~2-3 phút
+  Build lần sau  : ~15-30 giây  (nhờ layer + BuildKit cache)
+
+================================================================================
+PHẦN 11: NGINX REVERSE PROXY
+================================================================================
+
+  Backend chạy port 1424 trong container
+  Docker map ra host: port 1425
+  Nginx proxy: 80/443 → localhost:1425
+
+  → Xem file ngix.doc.txt để biết config Nginx + SSL
+
+================================================================================
+PHẦN 12: TROUBLESHOOTING — LỖI THƯỜNG GẶP
+================================================================================
+
+  [LỖI 1] apartment_kibana_2 crash liên tục
+  ──────────────────────────────────────────
+  Triệu chứng:
+    {"message":"Unable to revive connection: http://172.16.100.228:9200/"}
+    {"message":"No living connections"}
+
+  Nguyên nhân:
+    kibana_2 kết nối tới ES external (IP nội bộ công ty).
+    Không truy cập được khi dev local hoặc server khác mạng.
+    Container cũ (orphan) còn sót, restart: unless-stopped cứ loop mãi.
+
+  Fix:
+    docker compose down --remove-orphans
+    make docker-dev
+    # kibana_2 sẽ KHÔNG start (đã có profiles: ['monitoring'])
+    # Muốn bật: docker compose --profile monitoring up -d kibana_2
+
+  ──────────────────────────────────────────────────────────────────────────────
+
+  [LỖI 2] Backend crash ngay sau khi MySQL báo healthy
+  ─────────────────────────────────────────────────────
+  Nguyên nhân:
+    mysqladmin ping pass trước khi DB schema init xong.
+    Backend connect ngay → fail → panic.
+
+  Fix (đã áp dụng):
+    pkg/mysql/client.go: retry 12 lần, exponential backoff 2s→4s→8s→16s
+    docker-compose.yml: MySQL healthcheck kiểm tra "SELECT 1" thực sự
+                        start_period: 30s, retries: 15
+
+  ──────────────────────────────────────────────────────────────────────────────
+
+  [LỖI 3] CI fail: "undefined: echo / jwt / elasticsearch (typecheck)"
+  ─────────────────────────────────────────────────────────────────────
+  Triệu chứng:
+    Lint: auth.go — undefined: echo (typecheck)
+    Failed to restore: Cache service responded with 400
+
+  Nguyên nhân (2 lỗi cùng lúc):
+    1. GitHub cache service lỗi → 400 → module cache không restore
+       → golangci-lint typecheck thiếu packages
+    2. golangci-lint v1.56.0 không hỗ trợ Go 1.24 + toolchain directive
+
+  Fix (đã áp dụng trong ci.yml):
+    - Thêm "go mod download" tường minh trước lint (không phụ thuộc cache)
+    - Nâng golangci-lint v1.56.0 → v1.64.8
+    - Nâng golangci-lint-action @v4 → @v6
+
+  ──────────────────────────────────────────────────────────────────────────────
+
+  [LỖI 4] CD fail: ".env not found" (docker compose crash ngay đầu)
+  ──────────────────────────────────────────────────────────────────
+  Triệu chứng:
+    env file .../golang-apartment-service/.env not found
+    Error: Process completed with exit code 1.
+
+  Nguyên nhân (chuỗi xếp tầng):
+    1. actions/checkout@v4 mặc định clean: true
+       → chạy "git clean -ffdx" → xóa .env (gitignored)
+    2. docker compose đọc "env_file: .env" → file không có → crash
+
+  Fix (đã áp dụng trong cd.yml) — 3-layer fallback:
+    Layer 1 (happy path): .env có trong workspace
+                          clean: false giữ lại từ lần deploy trước
+    Layer 2 (recovery)  : workspace vừa bị reset/wipe
+                          → copy từ /root/apartment-service-secrets/.env
+    Layer 3 (hard fail) : cả hai không có → print hướng dẫn setup → exit 1
+
+  Setup 1 lần trên server (xem Phần 5.2 để chi tiết):
+    mkdir -p /root/apartment-service-secrets
+    scp .env root@SERVER:/root/apartment-service-secrets/.env
+    chmod 600 /root/apartment-service-secrets/.env
+
+  ──────────────────────────────────────────────────────────────────────────────
+
+  [LỖI 5] CD fail: Config File "prod" Not Found in "[/app/config]"
+  ─────────────────────────────────────────────────────────────────
+  Triệu chứng:
+    panic: Failed to load configuration: Config File "prod" Not Found
+
+  Nguyên nhân:
+    CD workflow thiếu actions/checkout → runner dùng workspace cũ
+    → config/prod.yaml chưa có mặt (file mới chưa kéo về).
+
+  Fix (đã áp dụng): actions/checkout@v4 là bước ĐẦU TIÊN trong cd.yml
+    → runner luôn có code + config mới nhất trước khi compose run.
+
+  ──────────────────────────────────────────────────────────────────────────────
+
+  [LỖI 6] Docker Hub login fail: "Username and password required"
+  ───────────────────────────────────────────────────────────────
+  Nguyên nhân:
+    GitHub Secrets DOCKERHUB_USERNAME và DOCKERHUB_TOKEN chưa được tạo.
+
+  Fix:
+    hub.docker.com → Account Settings → Security → New Access Token
+    GitHub repo → Settings → Secrets → Actions → New secret:
+      DOCKERHUB_USERNAME = tienhiendev
+      DOCKERHUB_TOKEN    = <access token vừa tạo>
+
 ================================================================================
 
 ──────────────────────────────────────────────────────────────────────────────
