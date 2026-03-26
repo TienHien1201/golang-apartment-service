@@ -1,0 +1,32 @@
+extends: base
+
+app:
+  env: prod
+  debug: false
+
+logger:
+  level: info
+  format: json # structured JSON cho log aggregation (ELK, Loki, Datadog)
+  output: stdout
+
+database:
+  mysql:
+    maxIdleConns: 10
+    maxOpenConns: 200
+    connMaxLifetime: 300
+
+  redis:
+    poolSize: 200
+    minIdleConns: 10
+
+  elasticSearch:
+    enableLogging: false # tắt query logging trong production
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tất cả secrets PHẢI được set qua biến môi trường APARTMENT_APP_*
+# Xem .env.example để biết danh sách đầy đủ.
+#
+# Ví dụ: APARTMENT_APP_DATABASE_MYSQL_PASSWORD=mypassword
+#         APARTMENT_APP_JWT_ACCESS_SECRET=my_jwt_secret
+# ─────────────────────────────────────────────────────────────────────────────

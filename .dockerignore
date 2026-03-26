@@ -1,0 +1,47 @@
+# ── VCS ──────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── Docker (tránh context loop) ───────────────────────────────────────────────
+.dockerignore
+docker-compose*.yml
+Dockerfile*
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+*.md
+*.txt
+docs/
+documents/
+attachments/
+
+# ── Build artifacts (không đưa output cũ vào image mới) ──────────────────────
+build_*/
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+test/
+**/*_test.go
+*.sh
+
+# ── CI/CD ─────────────────────────────────────────────────────────────────────
+.github/
+
+# ── Misc folders không cần trong image ───────────────────────────────────────
+Google
+Job
+Queue
+http
+
+# ── Secrets (không được copy vào image) ──────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.bashrc

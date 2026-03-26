@@ -1,25 +1,45 @@
-name: cd
+name: CD — Deploy
 
 on:
-    workflow_run:
-        workflows: ["ci"]
-        types:
-            - completed
+  workflow_run:
+    workflows: ['CI — Build & Push']
+    types: [completed]
+
 jobs:
-    start:
-        runs-on:
-          - self-hosted
-          - be-apartment_business
+  deploy:
+    name: Deploy to Server
+    # Chỉ deploy khi CI thành công — không deploy khi CI fail
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on:
+      - self-hosted
+      - be-apartment_business
+    steps:
+      # Đảm bảo toàn bộ stack đang chạy (idempotent — an toàn cả lần đầu lẫn lần sau)
+      - name: Ensure stack is up
+        run: docker compose up -d --remove-orphans
 
-        steps:
-        # chạy lần đầu thành công r lần sau comment lại để k mất hết dữ liệu db. Chạy lần đầu nhớ mở cái dòng này ra
-         - name: Chạy lần đầu
-           run: sudo docker compose up -d
+      # Pull backend image mới từ registry
+      - name: Pull latest backend image
+        run: docker compose pull service_apartment_business
 
-        # Chạy lần đầu nhớ comment 4 dòng dưới lại , sau khi chạy lần đầu thành công rồi thì mở ra
-#        - name: Kéo image mới về
-#          run : sudo docker compose pull service_apartment_business
-#
-#        - name: Tạo lại container con_be_apartment_business
-#          run: sudo docker compose up -d --no-deps --force-recreate service_apartment_business
+      # Chỉ recreate backend — không restart DB/Redis/ES, không mất data
+      - name: Recreate backend container
+        run: docker compose up -d --no-deps --force-recreate service_apartment_business
 
+      # Chờ health check xanh rồi mới xem là deploy thành công
+      - name: Wait for health check
+        run: |
+          echo "Waiting for backend to become healthy..."
+          for i in $(seq 1 12); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' con_be_apartment_business 2>/dev/null || echo "missing")
+            echo "  attempt $i/12 — status: $STATUS"
+            [ "$STATUS" = "healthy" ] && { echo "✅ Healthy!"; exit 0; }
+            sleep 5
+          done
+          echo "❌ Container not healthy after 60s"
+          docker compose logs --tail=50 service_apartment_business
+          exit 1
+
+      # Dọn image layer cũ để tiết kiệm disk
+      - name: Prune old images
+        run: docker image prune -f

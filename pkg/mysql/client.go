@@ -2,6 +2,7 @@ package xmysql
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -26,6 +27,15 @@ type Client struct {
 	DB *gorm.DB
 }
 
+const (
+	maxRetries    = 12
+	retryBaseWait = 2 * time.Second
+	retryMaxWait  = 16 * time.Second
+)
+
+// NewClient opens a GORM MySQL connection with exponential-backoff retry.
+// This is intentional: MySQL passes its healthcheck before the database is
+// fully ready to accept application connections.
 func NewClient(cfg *Config) (*Client, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=%v&loc=%s&autocommit=true",
 		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.ParseTime, cfg.Timezone,
@@ -38,9 +48,31 @@ func NewClient(cfg *Config) (*Client, error) {
 		},
 	}
 
-	db, err := gorm.Open(mysql.Open(dsn), gormConfig)
+	var (
+		db      *gorm.DB
+		err     error
+		waitFor = retryBaseWait
+	)
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		db, err = gorm.Open(mysql.Open(dsn), gormConfig)
+		if err == nil {
+			var sqlDB interface{ Ping() error }
+			if sqlDB, err = db.DB(); err == nil {
+				if err = sqlDB.Ping(); err == nil {
+					break
+				}
+			}
+		}
+		log.Printf("[mysql] attempt %d/%d failed: %v — retrying in %s", attempt, maxRetries, err, waitFor)
+		time.Sleep(waitFor)
+		if waitFor < retryMaxWait {
+			waitFor *= 2
+		}
+	}
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to mysql: %w", err)
+		return nil, fmt.Errorf("failed to connect to mysql after %d attempts: %w", maxRetries, err)
 	}
 
 	sqlDB, err := db.DB()

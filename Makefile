@@ -1,10 +1,14 @@
-GOPATH:=$(shell go env GOPATH)
-VERSION=$(shell git describe --tags --always)
-NAME=apartment_service
-ENV=dev
-DB=mysql
-COMMAND=version
-STEPS=1
+GOPATH   := $(shell go env GOPATH)
+VERSION  := $(shell git describe --tags --always 2>/dev/null || echo dev)
+GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+NAME     := apartment_service
+ENV      := dev
+DB       := mysql
+COMMAND  := version
+STEPS    := 1
+
+# Docker
+IMAGE    := tienhiendev/service_apartment_business
 
 .PHONY: init
 # init env
@@ -108,6 +112,59 @@ sonar:
 # make migrate ENV=dev DB=es COMMAND=force STEPS=1
 migrate:
 	@go run cmd/migrate/main.go -name $(NAME) -env $(ENV) -db $(DB) -command $(COMMAND) -steps $(STEPS)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────────────────────────────────────────
+
+.PHONY: docker-build
+# docker-build: build image local với BuildKit
+docker-build:
+	@DOCKER_BUILDKIT=1 docker build \
+	  --build-arg APP_VERSION=$(VERSION) \
+	  --build-arg GIT_COMMIT=$(GIT_COMMIT) \
+	  -t $(IMAGE):$(VERSION) \
+	  -t $(IMAGE):latest \
+	  .
+
+.PHONY: docker-push
+# docker-push: build và push image lên Docker Hub
+docker-push: docker-build
+	@docker push $(IMAGE):$(VERSION)
+	@docker push $(IMAGE):latest
+
+.PHONY: docker-dev
+# docker-dev: chạy local stack (build từ source, auto-merge override)
+docker-dev:
+	@DOCKER_BUILDKIT=1 docker compose up -d --build
+
+.PHONY: docker-prod
+# docker-prod: chạy production stack (pull image từ registry, không override)
+docker-prod:
+	@docker compose -f docker-compose.yml pull
+	@docker compose -f docker-compose.yml up -d
+
+.PHONY: docker-down
+# docker-down: dừng toàn bộ stack
+docker-down:
+	@docker compose down
+
+.PHONY: docker-logs
+# docker-logs: xem log backend real-time
+docker-logs:
+	@docker compose logs -f service_apartment_business
+
+.PHONY: docker-restart-be
+# docker-restart-be: restart chỉ backend (không ảnh hưởng DB/Redis)
+docker-restart-be:
+	@docker compose up -d --no-deps --force-recreate service_apartment_business
+
+.PHONY: docker-clean
+# docker-clean: xóa containers, dangling images, orphan volumes
+docker-clean:
+	@docker compose down --remove-orphans
+	@docker image prune -f
+	@docker volume prune -f
 
 # show help
 help:

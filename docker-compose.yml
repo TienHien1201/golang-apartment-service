@@ -1,134 +1,204 @@
 version: '3.8'
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCTION stack — chỉ dùng pre-built image từ registry.
+# Local dev: chạy `docker compose up -d --build` để auto-merge
+# docker-compose.override.yml (build từ source thay vì pull).
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
+  # ── Backend ──────────────────────────────────────────────────────────────
   service_apartment_business:
     image: tienhiendev/service_apartment_business:latest
     container_name: con_be_apartment_business
+    command: ['--env=prod']
     ports:
-      - 1425:1424
-    env_file:
-      - .env
+      - '1425:1424'
+    env_file: .env
     volumes:
-      - ./config:/app/config
+      - ./config:/app/config:ro # config read-only; override base config trong image
+      - ./attachments:/app/attachments
     depends_on:
       service-mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped # ← tự phục hồi sau crash
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:1424/api/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      start_period: 40s # Wait cho app khởi tạo DI hoàn tất
+      retries: 3
     networks:
       - apartment_network
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
 
+  # ── Redis ─────────────────────────────────────────────────────────────────
   redis:
     image: redis:7.2-alpine
     container_name: apartment_redis
+    hostname: apartment_redis # ← base.yaml dùng hostname này làm host
+    command: >
+      redis-server
+      --save 20 1
+      --loglevel warning
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
-    command: redis-server --save 20 1 --loglevel warning
+      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
-      timeout: 30s
+      timeout: 3s
+      start_period: 5s
       retries: 5
     restart: unless-stopped
     networks:
       - apartment_network
+    logging:
+      driver: json-file
+      options: { max-size: '5m', max-file: '2' }
 
+  # ── MySQL ─────────────────────────────────────────────────────────────────
   service-mysql:
     image: mysql:8.0
     container_name: aklht_apartment
-    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: 8000
       MYSQL_DATABASE: aklht_apartment
       TZ: Asia/Ho_Chi_Minh
     ports:
-      - "3306:3306"
+      - '3306:3306'
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./config/mysql/init:/docker-entrypoint-initdb.d
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    networks:
-      - apartment_network
+      - ./config/mysql/init:/docker-entrypoint-initdb.d:ro
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=256M
+      --max-connections=200
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-p8000" ]
+      # Kiểm tra cả ping VÀ DB thực sự accessible — đây là lý do backend crash:
+      # mysqladmin ping pass sớm nhưng DB init vẫn đang chạy.
+      test:
+        - CMD-SHELL
+        - |-
+          mysqladmin ping -h localhost -p'8000' --connect-timeout=3 &&
+          mysql -uroot -p'8000' -e 'SELECT 1' aklht_apartment 2>/dev/null
       interval: 5s
       timeout: 5s
-      retries: 10
+      start_period: 30s
+      retries: 15
+    restart: unless-stopped
+    networks:
+      - apartment_network
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
 
-
+  # ── Elasticsearch ─────────────────────────────────────────────────────────
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.8.23
     container_name: apartment_elasticsearch
+    hostname: apartment_elasticsearch # ← base.yaml dùng hostname này trong addresses
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - xpack.monitoring.collection.enabled=true
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m' # giảm từ 1g → 512m cho server RAM thấp
       - bootstrap.memory_lock=true
     ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+      memlock: { soft: -1, hard: -1 }
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - '9200:9200'
+      - '9300:9300'
+    healthcheck:
+      # Chờ cluster status yellow trở lên trước khi báo healthy
+      test:
+        [
+          'CMD-SHELL',
+          "curl -sf 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      start_period: 40s
+      retries: 10
+    restart: unless-stopped
     networks:
       - apartment_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
 
+  # ── Kibana (internal ES) ──────────────────────────────────────────────────
   kibana:
     image: docker.elastic.co/kibana/kibana:6.8.23
     container_name: apartment_kibana
     environment:
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_URL=http://apartment_elasticsearch:9200
       - xpack.security.enabled=false
       - xpack.monitoring.enabled=true
     ports:
-      - "5601:5601"
+      - '5601:5601'
     depends_on:
-      - elasticsearch
-    networks:
-      - apartment_network
+      elasticsearch:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status || exit 1"]
-      interval: 10s
-      timeout: 5s
+      test: ['CMD-SHELL', 'curl -sf http://localhost:5601/api/status || exit 1']
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
       retries: 5
     restart: unless-stopped
-  
+    networks:
+      - apartment_network
+    logging:
+      driver: json-file
+      options: { max-size: '5m', max-file: '2' }
+
+  # ── Kibana (external ES) — chỉ bật khi cần monitoring riêng ─────────────
+  # Để bật: docker compose --profile monitoring up -d
+  # KHÔNG bao giờ start khi chạy docker compose up thông thường.
   kibana_2:
     image: docker.elastic.co/kibana/kibana:6.8.23
     container_name: apartment_kibana_2
+    profiles: ['monitoring']
     environment:
       - ELASTICSEARCH_URL=http://172.16.100.228:9200
       - xpack.security.enabled=false
       - xpack.monitoring.enabled=true
+      # Giảm log noise khi ES ngoài không sẵn sàng
+      - LOGGING_QUIET=true
     ports:
-      - "5602:5601"
+      - '5602:5601'
+    # on-failure:3 thay vì unless-stopped:
+    # Nếu ES ngoài không sống → thử 3 lần rồi dừng hẳn, không loop mãi
+    restart: on-failure:3
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:5601/api/status || exit 1']
+      interval: 20s
+      timeout: 10s
+      start_period: 90s # ES ngoài cần thêm thời gian hơn ES local
+      retries: 3
     networks:
       - apartment_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
 
+# ─────────────────────────────────────────────────────────────────────────────
 volumes:
-  redis_data:
-    driver: local
-  mysql_data:
-    driver: local
-  elasticsearch_data:
-    driver: local
+  redis_data: { driver: local }
+  mysql_data: { driver: local }
+  elasticsearch_data: { driver: local }
 
 networks:
   apartment_network:
-    driver: bridge 
+    driver: bridge

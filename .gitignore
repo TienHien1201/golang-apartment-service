@@ -63,4 +63,24 @@ staff-specialized/
 # Folder Cursor
 .cursor/
 
+# ── Secrets (KHÔNG ĐƯỢC commit lên git) ──────────────────────
 .env
+.env.*
+!.env.example
+
+# ── Docker override (chứa build context local, không cần commit) ──
+docker-compose.override.yml
+
+# ── Go build output ────────────────────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/out/
+
+# ── Certificate & key ─────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12

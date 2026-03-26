@@ -10,3 +10,259 @@ docker run -d --name apartment_redis --network apartment_network -p 6379:6379 -v
 ```
 docker run -d --name apartment_elasticsearch --network apartment_network -p 9200:9200 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:6.8.23
 ```
+
+
+
+
+================================================================================
+DOCKER COMPOSE — CẤU TRÚC & HƯỚNG DẪN SỬ DỤNG
+Cập nhật: 2026-03
+================================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+1. CẤU TRÚC FILE SAU KHI TỔ CHỨC
+──────────────────────────────────────────────────────────────────────────────
+
+  config/
+    base.yaml          ← Defaults chung cho mọi env (hostnames khớp Docker network)
+    dev.yaml           ← Override cho local dev
+    qc.yaml            ← Override cho môi trường QC/staging
+    prod.yaml          ← Override cho production (json log, tuned pool)
+    mysql/init/        ← Các file .sql chạy tự động khi MySQL khởi tạo lần đầu
+
+  .env                 ← Secrets thật (KHÔNG commit lên git)
+  .env.example         ← Template — commit lên git để team biết cần set gì
+  .dockerignore        ← Loại trừ file không cần thiết khi build image (~80% nhỏ hơn)
+
+  docker-compose.yml           ← PRODUCTION: pull image từ registry
+  docker-compose.override.yml  ← LOCAL DEV: build từ Dockerfile (auto-merge)
+
+  Dockerfile           ← Multi-stage build (builder + runtime alpine)
+
+  .github/workflows/
+    ci.yml             ← Lint → Test → Build → Push image lên Docker Hub
+    cd.yml             ← Deploy tự động lên server sau khi CI pass
+
+──────────────────────────────────────────────────────────────────────────────
+2. TẠI SAO BACKEND CRASH (ROOT CAUSE)
+──────────────────────────────────────────────────────────────────────────────
+
+  VẤN ĐỀ CŨ:
+  - mysqladmin ping → pass ngay khi MySQL nhận connections
+  - Docker báo service-mysql = healthy
+  - Backend start → gorm.Open() fail (DB vẫn đang init schema)
+  - log.Panicf → container exit
+  - Không có restart: unless-stopped → dead mãi
+
+  ĐÃ FIX BẰNG 3 LỚP:
+  1. pkg/mysql/client.go   : retry exponential backoff (2s→4s→8s→16s, tối đa 12 lần)
+  2. docker-compose.yml    : MySQL healthcheck kiểm tra DB accessible + start_period:30s
+  3. docker-compose.yml    : restart: unless-stopped + depends_on redis/elasticsearch
+
+──────────────────────────────────────────────────────────────────────────────
+3. GIẢI THÍCH CÁC FILE COMPOSE
+──────────────────────────────────────────────────────────────────────────────
+
+  docker-compose.yml
+    → File chính, dùng cho PRODUCTION
+    → Pull image tienhiendev/service_apartment_business:latest từ Docker Hub
+    → Không bao giờ dùng trực tiếp để dev (sẽ dùng image cũ)
+
+  docker-compose.override.yml
+    → Docker Compose tự động merge file này với docker-compose.yml
+    → Thay image bằng build: context: . (build từ source code)
+    → CHỈ dùng khi dev local, không commit credentials vào đây
+
+  Cách Docker Compose chọn file:
+    `docker compose up`             → merge yml + override.yml (local dev)
+    `docker compose -f docker-compose.yml up`  → chỉ yml (production mode)
+
+──────────────────────────────────────────────────────────────────────────────
+4. HƯỚNG DẪN SỬ DỤNG TỪNG BƯỚC
+──────────────────────────────────────────────────────────────────────────────
+
+  [BƯỚC 0] Chuẩn bị lần đầu
+  ──────────────────────────
+  cp .env.example .env
+  # → Mở .env, điền secrets thật (password, API key, v.v.)
+
+  [BƯỚC 1] Dọn dẹp trước khi chạy lại
+  ──────────────────────────────────────
+  # --remove-orphans: quan trọng! Xóa containers cũ không còn trong compose
+  # (tránh kibana_2 và các service cũ bị restart mãi)
+  docker compose down --remove-orphans
+  docker image rm tienhiendev/service_apartment_business:latest
+  docker image prune -f
+
+  [BƯỚC 2] Chạy LOCAL (build từ source)
+  ──────────────────────────────────────
+  DOCKER_BUILDKIT=1 docker compose up -d --build
+
+  # Hoặc dùng Makefile:
+  make docker-dev
+
+  # Xem log backend (sẽ thấy retry MySQL)
+  docker compose logs -f service_apartment_business
+
+  # Log bình thường:
+  #   [mysql] attempt 1/12 failed: ... — retrying in 2s
+  #   [mysql] attempt 2/12 failed: ... — retrying in 4s
+  #   Starting app v1.0.0 (dev)       ← connected OK
+
+  [BƯỚC 3] Kiểm tra health
+  ──────────────────────────
+  docker compose ps
+  # Tất cả STATUS phải là: Up (healthy)
+
+  [BƯỚC 4] Push image lên Docker Hub
+  ────────────────────────────────────
+  docker login -u tienhiendev
+  make docker-push
+  # Hoặc thủ công:
+  # docker build -t tienhiendev/service_apartment_business:latest .
+  # docker push tienhiendev/service_apartment_business:latest
+
+  [BƯỚC 5] Deploy server (thủ công lần đầu)
+  ──────────────────────────────────────────
+  # Từ máy dev, copy file lên server:
+  scp docker-compose.yml user@server:/opt/apartment-service/
+  scp -r config/ user@server:/opt/apartment-service/
+  scp .env user@server:/opt/apartment-service/
+
+  # Trên server:
+  cd /opt/apartment-service
+  docker compose -f docker-compose.yml pull
+  docker compose -f docker-compose.yml up -d
+  docker compose ps
+
+  [BƯỚC 6] CD tự động (sau bước này không cần thủ công nữa)
+  ──────────────────────────────────────────────────────────
+  # Đảm bảo self-hosted runner đang chạy trên server:
+  sudo systemctl status actions.runner.*
+
+  # GitHub Secrets cần set (Settings → Secrets → Actions):
+  #   DOCKERHUB_USERNAME  → tienhiendev
+  #   DOCKERHUB_TOKEN     → Docker Hub Access Token (KHÔNG dùng password)
+
+  # Từ giờ chỉ cần:
+  git push origin main
+  # → CI: Lint → Test → Build → Push image
+  # → CD: Pull image mới → Recreate backend → Wait health check
+
+  [BƯỚC 7] Release version
+  ──────────────────────────
+  git tag v1.0.1
+  git push origin v1.0.1
+  # → Tạo image tags: v1.0.1, 1.0, latest
+
+──────────────────────────────────────────────────────────────────────────────
+5. LỆNH MAKEFILE THƯỜNG DÙNG
+──────────────────────────────────────────────────────────────────────────────
+
+  make docker-dev         → chạy local stack (build từ source)
+  make docker-prod        → chạy production (pull từ registry)
+  make docker-push        → build + push lên Docker Hub
+  make docker-logs        → xem log backend real-time
+  make docker-restart-be  → restart chỉ backend (không đụng DB/Redis)
+  make docker-clean       → xóa containers + dangling images + orphan volumes
+  make docker-down        → dừng toàn bộ stack
+
+  make dev                → chạy app local không dùng Docker (go run)
+  make build-dev          → build binary cho dev
+  make build-prod         → build binary cho production
+  make migrate ENV=dev DB=mysql COMMAND=up STEPS=1   → chạy migration
+  make gen-swagger        → generate swagger docs
+
+──────────────────────────────────────────────────────────────────────────────
+6. CONFIG THEO ENVIRONMENT
+──────────────────────────────────────────────────────────────────────────────
+
+  App đọc config theo thứ tự:
+    1. config/base.yaml      (base defaults)
+    2. config/{env}.yaml     (override theo --env flag)
+    3. Biến môi trường APARTMENT_APP_*  (override tất cả)
+
+  Mapping biến môi trường:
+    APARTMENT_APP_DATABASE_MYSQL_PASSWORD  → database.mysql.password
+    APARTMENT_APP_JWT_ACCESS_SECRET        → jwt.access_secret
+    APARTMENT_APP_CLOUDINARY_API_SECRET    → cloudinary.api_secret
+    (thay dấu . bằng _ và viết hoa: prefix APARTMENT_APP)
+
+  Secrets KHÔNG được để trong file yaml:
+    → Set trong .env (local) hoặc GitHub Secrets (CI/CD)
+    → Xem .env.example để biết đầy đủ danh sách
+
+──────────────────────────────────────────────────────────────────────────────
+7. IMAGE SIZE (TRƯỚC vs SAU)
+──────────────────────────────────────────────────────────────────────────────
+
+  TRƯỚC:
+    - Base: alpine:3.19
+    - Build flags: không có -trimpath, không có -s -w
+    - Không có BuildKit cache
+    - Kết quả: ~70-80 MB
+
+  SAU:
+    - Base: alpine:3.21 (~8 MB)
+    - Build flags: -trimpath -s -w (strip debug info)
+    - BuildKit cache (go module cache + go build cache)
+    - Non-root user (appuser) trong container
+    - HEALTHCHECK tích hợp sẵn
+    - .dockerignore loại docs/test/git/IDE
+    - Kết quả: ~35-45 MB  (giảm ~50%)
+
+  Build lần đầu: ~2-3 phút
+  Build lần sau (chỉ thay đổi code): ~15-30 giây  (nhờ cache)
+
+──────────────────────────────────────────────────────────────────────────────
+8. NGINX REVERSE PROXY (SERVER)
+──────────────────────────────────────────────────────────────────────────────
+  → Xem file ngix.doc.txt để biết config Nginx + SSL Cloudflare
+  → Backend chạy port 1424 bên trong container
+  → Docker map ra host port 1425
+  → Nginx proxy từ port 80/443 → localhost:1425
+
+================================================================================
+Hết
+================================================================================
+
+================================================================================
+TROUBLESHOOTING — LỖI THƯỜNG GẶP
+================================================================================
+
+  [LỖI 1] apartment_kibana_2 crash liên tục
+  ──────────────────────────────────────────
+  Triệu chứng:
+    {"message":"Unable to revive connection: http://172.16.100.228:9200/"}
+    {"message":"No living connections"}
+
+  Nguyên nhân:
+    kibana_2 kết nối tới ES external (IP nội bộ công ty).
+    Không truy cập được khi dev local hoặc server khác mạng.
+    Container cũ (orphan) còn sót từ lần chạy trước khi chưa có profiles,
+    và restart: unless-stopped cứ restart mãi.
+
+  Fix:
+    # B1: Xóa orphan containers (LUÔN dùng --remove-orphans)
+    docker compose down --remove-orphans
+
+    # B2: Chạy lại bình thường (kibana_2 sẽ KHÔNG start vì có profiles)
+    make docker-dev
+
+    # Nếu cần bật kibana_2 (khi đang ở đúng mạng có 172.16.100.228):
+    docker compose --profile monitoring up -d kibana_2
+
+  Đã fix trong compose:
+    - profiles: ['monitoring'] → không start mặc định
+    - restart: on-failure:3   → thử 3 lần rồi dừng hẳn (không loop mãi)
+    - LOGGING_QUIET=true      → giảm noise log khi ES không sống
+
+  ──────────────────────────────────────────────────────────────────────────────
+
+  [LỖI 2] Backend crash ngay sau khi MySQL báo healthy
+  ─────────────────────────────────────────────────────
+  Nguyên nhân: mysqladmin ping pass trước khi DB init xong
+  Fix: pkg/mysql/client.go có retry 12 lần exponential backoff
+  → Xem mục 2. TẠI SAO BACKEND CRASH
+
+================================================================================
