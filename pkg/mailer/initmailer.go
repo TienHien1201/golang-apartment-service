@@ -12,10 +12,11 @@ type SMTPConfig struct {
 }
 
 type Mailer struct {
-	auth smtp.Auth
-	host string
-	addr string
-	from string
+	auth        smtp.Auth
+	host        string
+	addr        string
+	from        string // display format: "Name <email@host>"
+	senderEmail string // bare email address for SMTP envelope
 }
 
 func NewMailer(cfg SMTPConfig, from string) *Mailer {
@@ -27,9 +28,10 @@ func NewMailer(cfg SMTPConfig, from string) *Mailer {
 	)
 
 	return &Mailer{
-		auth: auth,
-		host: cfg.Host,
-		addr: cfg.Host + ":" + cfg.Port,
-		from: from,
+		auth:        auth,
+		host:        cfg.Host,
+		addr:        cfg.Host + ":" + cfg.Port,
+		from:        from,
+		senderEmail: cfg.User, // SMTP user is the sender address
 	}
 }

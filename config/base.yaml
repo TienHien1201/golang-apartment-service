@@ -43,8 +43,8 @@ database:
     enableLogging: true
 
 jwt:
-  access_secret: "ACCESS_TOKEN_SECRET"
-  refresh_secret: "REFRESH_TOKEN_SECRET"
+  access_secret: 'ACCESS_TOKEN_SECRET'
+  refresh_secret: 'REFRESH_TOKEN_SECRET'
   access_expire: 168h
   refresh_expire: 720h
   token_type: Bearer
@@ -59,3 +59,11 @@ cloudinary:
   cloud_name:
   api_key:
   api_secret:
+
+mailer:
+  smtp:
+    host: smtp.gmail.com
+    port: '587'
+    user: ''
+    pass: ''
+  fromname: ''

@@ -25,6 +25,7 @@ type Config struct {
 	JWT        JWTConfig
 	Auth       AuthConfig
 	Cloudinary CloudinaryConfig
+	Mailer     MailerConfig
 }
 
 func LoadConfig(env Environment, configPath string) (*Config, error) {

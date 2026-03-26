@@ -8,6 +8,16 @@ import (
 	"thomas.vn/apartment_service/pkg/query"
 )
 
+// domainError is a local interface that mirrors apperror.DomainError's
+// accessor methods. This lets pkg/http handle domain errors without
+// importing internal/domain/apperror, keeping the dependency direction correct.
+type domainError interface {
+	error
+	GetStatus() int
+	GetCode() string
+	GetField() string
+}
+
 func DataResponse(c echo.Context, statusCode int, data interface{}) error {
 	return c.JSON(statusCode, APIResponse{
 		Status:  statusCode,
@@ -67,12 +77,30 @@ func UnauthorizedResponse(c echo.Context, data interface{}) error {
 	})
 }
 
+// AppErrorResponse converts a structured error into the appropriate JSON response.
+// It handles two error types in priority order:
+//  1. *AppError — errors created directly within the HTTP/delivery layer.
+//  2. domainError — errors from the domain/usecase layer (e.g. *apperror.DomainError)
+//     detected via a local interface so pkg/http needs no import of internal packages.
 func AppErrorResponse(c echo.Context, err error) error {
+	// 1. Handle HTTP-layer AppError
 	var appErr *AppError
 	if errors.As(err, &appErr) {
 		return c.JSON(appErr.Status, APIResponse{
 			Status:  appErr.Status,
 			Message: appErr.Message,
+			Data:    nil,
+		})
+	}
+
+	// 2. Handle domain errors (apperror.DomainError) via duck-typing.
+	// errors.As traverses the full error chain automatically.
+	var de domainError
+	if errors.As(err, &de) {
+		st := de.GetStatus()
+		return c.JSON(st, APIResponse{
+			Status:  st,
+			Message: de.Error(),
 			Data:    nil,
 		})
 	}

@@ -2,6 +2,7 @@ package di
 
 import (
 	"thomas.vn/apartment_service/internal/config"
+	"thomas.vn/apartment_service/internal/infrastructure/fileadapter"
 	"thomas.vn/apartment_service/internal/repository"
 	"thomas.vn/apartment_service/internal/server/http/handler/ai"
 	"thomas.vn/apartment_service/internal/server/http/handler/articles"
@@ -53,12 +54,21 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	httpClient := xhttp.NewHTTPClient()
 	inMemoryQueue := xqueue.NewInMemoryQueue(logger, nil)
 
-	fileSvc := xfile.NewHTTPFile(httpClient.HTTPClient())
+	fileImpl := xfile.NewHTTPFile(httpClient.HTTPClient())
+	fileSvc := fileadapter.New(fileImpl) // domain-safe FileService via infrastructure adapter
 	aiURLConfig := cfg.Ai
 
 	tokenCfg := config.TokenConfig{AccessSecret: cfg.JWT.AccessSecret, AccessExpire: cfg.JWT.AccessExpire, RefreshSecret: cfg.JWT.RefreshSecret, RefreshExpire: cfg.JWT.RefreshExpire}
 
-	mailer := mail.NewMailer(mail.SMTPConfig{Host: "smtp.gmail.com", Port: "587", User: "phamtienhien08072018@gmail.com", Pass: "gqqrdaxprykasskf"}, "Hien CNTT <tienhien.cntt@gmail.com>")
+	// Mailer is configured from YAML — credentials never hardcoded in source code.
+	mailerCfg := cfg.Mailer
+	senderDisplay := mailerCfg.FromName + " <" + mailerCfg.SMTP.User + ">"
+	mailer := mail.NewMailer(mail.SMTPConfig{
+		Host: mailerCfg.SMTP.Host,
+		Port: mailerCfg.SMTP.Port,
+		User: mailerCfg.SMTP.User,
+		Pass: mailerCfg.SMTP.Pass,
+	}, senderDisplay)
 	googleOAuth := xgoogle.New(cfg.Auth.Google.ClientID, cfg.Auth.Google.ClientSecret, cfg.Auth.Google.CallbackURL)
 	cld, _ := xcloudinary.NewCloudinary(cfg.Cloudinary)
 
@@ -76,7 +86,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 	chatMessageUC := usecase.NewChatMessageUsecase(logger, chatMessageRepo)
 	chatGroupUc := usecase.NewChatGroupUsecase(logger, chatGroupRepo)
 	authUC := auth2.NewAuthUsecase(logger, userRepo, tokenSvc, inMemoryQueue)
-	aiUC := usecase.NewAiUsecase(logger, *aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
+	aiUC := usecase.NewAiUsecase(logger, aiRepo, aiURLConfig.DownloadURL, inMemoryQueue)
 	permissionUC := usecase.NewPermissionUsecase(logger, permissionRepo)
 	mailUC := usecase.NewMailUsecase(mailer)
 	totpUc := totp.NewTotpUsecase(logger, userRepo)
@@ -116,7 +126,7 @@ func NewAppContainer(cfg *config.Config, logger *xlogger.Logger) (*AppContainer,
 
 	//========= Create job ==============
 	mailJob := queuejobs.NewMailJob(logger, mailUC)
-	uploadLocalAvatarJob := queuejobs.NewUploadUserAvatarJob(logger, fileSvc, userUC)
+	uploadLocalAvatarJob := queuejobs.NewUploadUserAvatarJob(logger, fileImpl, userUC)
 	uploadCloudAvatarJob := queuejobs.NewUploadAvatarCloudJob(logger, cld, userUC)
 	deleteCloudAssetJob := queuejobs.NewDeleteCloudinaryAssetJob(logger, cld)
 	inMemoryQueue.RegisterJobs([]xqueue.Job{mailJob, uploadLocalAvatarJob, uploadCloudAvatarJob, deleteCloudAssetJob})

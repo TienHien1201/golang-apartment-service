@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
+	"thomas.vn/apartment_service/internal/domain/apperror"
 	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
-	xhttp "thomas.vn/apartment_service/pkg/http"
 )
 
 func (u *authUsecase) GoogleLogin(ctx context.Context, gUser *model.GoogleUser) (string, string, error) {
 	if !gUser.EmailVerified {
-		return "", "", xhttp.BadRequestErrorf("email not verified by google")
+		return "", "", apperror.BadRequest("email not verified by google")
 	}
 
 	user, err := u.userRepo.GetUserByEmail(ctx, gUser.Email)

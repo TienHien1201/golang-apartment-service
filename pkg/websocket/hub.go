@@ -34,6 +34,10 @@ func (h *Hub) Broadcast(room int, msg []byte) {
 	defer h.Mu.RUnlock()
 
 	for c := range h.Rooms[room] {
-		c.Send <- msg
+		select {
+		case c.send <- msg:
+		default:
+			// Client send buffer full — drop message to avoid blocking broadcast.
+		}
 	}
 }

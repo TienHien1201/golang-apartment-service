@@ -5,14 +5,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"thomas.vn/apartment_service/internal/domain/apperror"
 	"thomas.vn/apartment_service/internal/domain/consts"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/service"
 	user2 "thomas.vn/apartment_service/internal/domain/usecase"
-	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
-	xqueue "thomas.vn/apartment_service/pkg/queue"
 )
 
 type userUsecase struct {
@@ -20,10 +19,10 @@ type userUsecase struct {
 	userRepo    repository.UserRepository
 	cacheSvc    service.CacheService
 	fileService service.FileService
-	queue       xqueue.QueueService
+	queue       service.QueueService
 }
 
-func NewUserUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, cacheSvc service.CacheService, fileService service.FileService, queue xqueue.QueueService) user2.UserUsecase {
+func NewUserUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, cacheSvc service.CacheService, fileService service.FileService, queue service.QueueService) user2.UserUsecase {
 	return &userUsecase{
 		logger:      logger,
 		userRepo:    userRepo,
@@ -67,7 +66,7 @@ func (u *userUsecase) GetUser(ctx context.Context, id uint) (*xuser.User, error)
 		return nil, err
 	}
 	if user == nil {
-		return nil, xhttp.NotFoundErrorf("User with ID %d not found", id)
+		return nil, apperror.NotFound("User with ID %d not found", id)
 	}
 
 	return user, nil
@@ -176,7 +175,7 @@ func (u *userUsecase) ProcessUploadLocal(ctx context.Context, req *xuser.UploadA
 
 func (u *userUsecase) UploadCloud(ctx context.Context, req *xuser.UploadAvatarCloudRequest) error {
 	if req.File == nil {
-		return xhttp.BadRequestErrorf("File is required")
+		return apperror.BadRequest("File is required")
 	}
 
 	user, err := u.userRepo.GetUserByID(ctx, req.UserID)

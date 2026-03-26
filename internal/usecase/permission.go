@@ -3,11 +3,11 @@ package usecase
 import (
 	"context"
 
+	"thomas.vn/apartment_service/internal/domain/apperror"
 	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/usecase"
-	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
@@ -44,7 +44,7 @@ func (u *permissionUsecase) GetPermissionByID(ctx context.Context, permissionID 
 		return nil, err
 	}
 	if permission == nil {
-		return nil, xhttp.NotFoundErrorf("User with ID %d not found", permissionID)
+		return nil, apperror.NotFound("Permission with ID %d not found", permissionID)
 	}
 
 	return permission, nil

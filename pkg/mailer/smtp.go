@@ -55,5 +55,5 @@ func (m *Mailer) Send(
 	)
 }
 func (m *Mailer) fromEmail() string {
-	return "tienhien.cntt@gmail.com"
+	return m.senderEmail
 }

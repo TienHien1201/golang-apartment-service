@@ -1,0 +1,65 @@
+https://docs.docker.com/reference/dockerfile/
+
+# IMAGE
+
+#BUILD IMAGE
+    docker image build -t img-be_apartment_bussiness .
+
+# Show tất cả các img đang có
+    docker image ls
+# Xóa image
+    docker image remove id_ten_image
+    docker image rmi id_ten_image
+
+
+# Công cụ phân tịch image  (Doc - https://github.com/wagoodman/dive)
+    brew install dive       # macOS
+    sudo apt install dive   # Linux
+    choco install dive      # Windows
+
+# Kết hợp
+  docker image remove id_tên_image \\
+  docker image build -t img-be_apartment_bussiness .
+
+## CONTAINER
+    # show tất cả container
+    docker container list: show những container đang online
+    docker container ls
+    -a : show tất cả các container kể cả container đang ofline
+        docker container list -a
+        docker container ls -a
+        docker ps -a
+
+    # tạo/chạy container
+        docker container run
+        docker container run --env-file .env --name con-be_apartment_bussiness -p 3070:3069 -d img-be_apartment_bussiness
+        --name: đặt cho container
+        -p: quy định cổng frontend kết nối
+        -d: chạy ngầm không chiếm dụng terminal
+         --env-file: đọc dữ liệu bên trong file env và nạp vào biến môi trường
+         Tên image luôn để cuối cùng
+        Kiểm tra xem image đã có trong máy hay chưa
+        - có: dùng trong máy
+        - chưa có: tự lên docker hub kéo về
+    # Kiểm tra log container (source)
+        docker logs id_ten_container
+        docker logs -f id_ten_container
+        -f: bắt dính cập nhật log mới nhất(chỉ khi container starting)
+
+# Kết hợp
+        docker container remove con-be_apartment_bussiness \\
+        docker container run --env-file .env --name con-be_apartment_bussiness -p 3070:3069 -d img-be_apartment_bussiness
+    
+# DOCKER COMPOSE
+    docker-compose down -v
+    docker-compose up --build -d
+
+    docker restart con-be_apartment_bussiness
+    docker stop <container_id_or_name>
+    docker start <container_id_or_name>
+
+    # Nếu có thay đổi code hoặc Dockerfile
+    docker stop <container_id_or_name>
+    docker start <container_id_or_name>
+
+

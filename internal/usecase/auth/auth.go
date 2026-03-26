@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"thomas.vn/apartment_service/internal/domain/apperror"
 	"thomas.vn/apartment_service/internal/domain/consts"
 	"thomas.vn/apartment_service/internal/domain/model"
 	xauth "thomas.vn/apartment_service/internal/domain/model/auth"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
+	"thomas.vn/apartment_service/internal/domain/service"
 	"thomas.vn/apartment_service/internal/domain/usecase"
-	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
-	xqueue "thomas.vn/apartment_service/pkg/queue"
 	pkgtotp "thomas.vn/apartment_service/pkg/totp"
 )
 
@@ -22,10 +22,10 @@ type authUsecase struct {
 	logger       *xlogger.Logger
 	userRepo     repository.UserRepository
 	tokenUc      usecase.TokenUsecase
-	queueService xqueue.QueueService
+	queueService service.QueueService
 }
 
-func NewAuthUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, tokenUc usecase.TokenUsecase, queueService xqueue.QueueService) usecase.AuthUsecase {
+func NewAuthUsecase(logger *xlogger.Logger, userRepo repository.UserRepository, tokenUc usecase.TokenUsecase, queueService service.QueueService) usecase.AuthUsecase {
 	return &authUsecase{
 		logger:       logger,
 		userRepo:     userRepo,
@@ -41,7 +41,7 @@ func (u *authUsecase) Register(ctx context.Context, req *xuser.CreateUserRequest
 	}
 
 	if user != nil {
-		return nil, xhttp.BadRequestErrorf("Email already exists")
+		return nil, apperror.Conflict("ERR_EMAIL_EXISTS", "email", "Email already exists")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -75,14 +75,14 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 
 	user, err := u.userRepo.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
-		return nil, xhttp.BadRequestErrorf("Email not exists")
+		return nil, apperror.BadRequest("Email not exists")
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(user.Password),
 		[]byte(password),
 	); err != nil {
-		return nil, xhttp.BadRequestErrorf("Wrong password")
+		return nil, apperror.BadRequest("Wrong password")
 	}
 
 	accessToken, refreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))
@@ -100,7 +100,7 @@ func (u *authUsecase) Login(ctx context.Context, email string, password string, 
 		}
 
 		if !pkgtotp.Verify(*totpToken, *user.TotpSecret) {
-			return nil, xhttp.BadRequestErrorf("Invalid totp token")
+			return nil, apperror.BadRequest("Invalid totp token")
 		}
 	}
 	_ = u.queueService.PublishMessage(
@@ -149,7 +149,7 @@ func (u *authUsecase) RefreshToken(
 		return "", "", err
 	}
 	if user == nil {
-		return "", "", xhttp.BadRequestErrorf("user does not exist")
+		return "", "", apperror.NotFound("user does not exist")
 	}
 
 	newAccessToken, newRefreshToken, err := u.tokenUc.CreateTokens(uint(user.ID))

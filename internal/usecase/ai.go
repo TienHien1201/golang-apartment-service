@@ -7,20 +7,20 @@ import (
 	"time"
 
 	"thomas.vn/apartment_service/internal/domain/consts"
+	domainrepo "thomas.vn/apartment_service/internal/domain/repository"
 	"thomas.vn/apartment_service/internal/domain/service"
 	"thomas.vn/apartment_service/internal/domain/usecase"
-	"thomas.vn/apartment_service/internal/repository"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 )
 
 type aiUsecase struct {
 	logger       *xlogger.Logger
-	aiRepo       repository.AiRepository
+	aiRepo       domainrepo.AiRepository
 	downloadURL  string
 	queueService service.QueueService
 }
 
-func NewAiUsecase(logger *xlogger.Logger, aiRepo repository.AiRepository, downloadURL string, queueService service.QueueService) usecase.AiUsecase {
+func NewAiUsecase(logger *xlogger.Logger, aiRepo domainrepo.AiRepository, downloadURL string, queueService service.QueueService) usecase.AiUsecase {
 	return &aiUsecase{
 		logger:       logger,
 		aiRepo:       aiRepo,

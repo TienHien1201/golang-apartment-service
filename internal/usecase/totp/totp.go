@@ -3,10 +3,10 @@ package totp
 import (
 	"context"
 
+	"thomas.vn/apartment_service/internal/domain/apperror"
 	xuser "thomas.vn/apartment_service/internal/domain/model/user"
 	"thomas.vn/apartment_service/internal/domain/repository"
 	utotp "thomas.vn/apartment_service/internal/domain/usecase"
-	xhttp "thomas.vn/apartment_service/pkg/http"
 	xlogger "thomas.vn/apartment_service/pkg/logger"
 	pkgtotp "thomas.vn/apartment_service/pkg/totp"
 )
@@ -31,7 +31,7 @@ func (u *totpUsecase) Generate(
 	user *xuser.User,
 ) (string, string, error) {
 	if user.TotpSecret != nil {
-		return "", "", xhttp.BadRequestErrorf("Totp already enabled")
+		return "", "", apperror.BadRequest("Totp already enabled")
 	}
 
 	result, err := pkgtotp.Generate(user.Email)
@@ -50,11 +50,11 @@ func (u *totpUsecase) Save(
 	token string,
 ) error {
 	if user.TotpSecret != nil {
-		return xhttp.BadRequestErrorf("Totp already enabled")
+		return apperror.BadRequest("Totp already enabled")
 	}
 
 	if !pkgtotp.Verify(token, secret) {
-		return xhttp.BadRequestErrorf("Invalid token")
+		return apperror.BadRequest("Invalid token")
 	}
 
 	return u.userRepo.UpdateTotpSecret(ctx, int64(user.ID), &secret)
@@ -66,11 +66,11 @@ func (u *totpUsecase) Verify(
 	token string,
 ) error {
 	if user.TotpSecret == nil {
-		return xhttp.BadRequestErrorf("Totp already enabled")
+		return apperror.BadRequest("Totp not enabled")
 	}
 
 	if !pkgtotp.Verify(token, *user.TotpSecret) {
-		return xhttp.BadRequestErrorf("Invalid token")
+		return apperror.BadRequest("Invalid token")
 	}
 
 	return nil
@@ -82,11 +82,11 @@ func (u *totpUsecase) Disable(
 	token string,
 ) error {
 	if user.TotpSecret == nil {
-		return xhttp.BadRequestErrorf("Totp already enabled")
+		return apperror.BadRequest("Totp already enabled")
 	}
 
 	if !pkgtotp.Verify(token, *user.TotpSecret) {
-		return xhttp.BadRequestErrorf("Invalid token")
+		return apperror.BadRequest("Invalid token")
 	}
 
 	return u.userRepo.UpdateTotpSecret(ctx, int64(user.ID), nil)

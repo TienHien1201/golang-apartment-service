@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 
 	"thomas.vn/apartment_service/internal/domain/model/chatgroup"
 	"thomas.vn/apartment_service/internal/domain/model/chatmessage"
@@ -18,30 +18,45 @@ type Server struct {
 	Token  usecase.TokenUsecase
 }
 
+// Handle upgrades the HTTP connection, creates a Client, starts its pumps,
+// and blocks until the connection is closed.
 func (s *Server) Handle(conn *websocket.Conn) {
-	defer conn.Close()
+	client := newClient(conn, "")
 
-	client := &Client{
-		Conn:  conn,
-		Send:  make(chan []byte, 256),
-		Rooms: map[int]bool{},
-	}
+	go client.WritePump()
+	s.readPump(client)
+}
 
-	go s.write(client)
+// readPump reads messages from the WebSocket connection in a loop.
+// It cleans up the client from all rooms on exit.
+func (s *Server) readPump(c *Client) {
+	defer func() {
+		c.mu.Lock()
+		for room := range c.rooms {
+			s.Hub.Leave(room, c)
+		}
+		c.mu.Unlock()
+		close(c.send)
+	}()
+
+	c.conn.SetReadLimit(maxMessageSize)
 
 	for {
-		var msg Message
-		if err := websocket.JSON.Receive(conn, &msg); err != nil {
-			return
+		_, data, err := c.conn.ReadMessage()
+		if err != nil {
+			break
 		}
-		s.dispatch(client, msg)
+		var msg Message
+		if err := json.Unmarshal(data, &msg); err != nil {
+			continue
+		}
+		s.dispatch(c, msg)
 	}
 }
 
 // ================= ROUTER =================
 
 func (s *Server) dispatch(c *Client, msg Message) {
-	//fmt.Printf("🟢 Received WS type=%s, payload=%s\n", msg.Type, string(msg.Payload))
 	switch msg.Type {
 	case "AUTH":
 		s.handleAuth(c, msg)
@@ -78,7 +93,7 @@ func (s *Server) handleJoinRoom(c *Client, msg Message) {
 
 	room := p.ChatGroupID
 	s.Hub.Join(room, c)
-	c.Rooms[room] = true
+	c.JoinRoom(room)
 }
 
 func (s *Server) handleCreateRoom(c *Client, msg Message) {
@@ -104,7 +119,7 @@ func (s *Server) handleCreateRoom(c *Client, msg Message) {
 	}
 
 	s.Hub.Join(roomID, c)
-	c.Rooms[roomID] = true
+	c.JoinRoom(roomID)
 
 	resp, _ := json.Marshal(map[string]any{
 		"type": "CREATE_ROOM",
@@ -113,8 +128,12 @@ func (s *Server) handleCreateRoom(c *Client, msg Message) {
 		},
 	})
 
-	c.Send <- resp
+	select {
+	case c.send <- resp:
+	default:
+	}
 }
+
 func (s *Server) handleSendMessage(c *Client, msg Message) {
 	var p SendMessagePayload
 	if err := json.Unmarshal(msg.Payload, &p); err != nil {
@@ -127,9 +146,9 @@ func (s *Server) handleSendMessage(c *Client, msg Message) {
 	}
 
 	room := p.ChatGroupID
-	if !c.Rooms[room] {
+	if !c.InRoom(room) {
 		s.Hub.Join(room, c)
-		c.Rooms[room] = true
+		c.JoinRoom(room)
 	}
 
 	req := &chatmessage.CreateChatMessageRequest{
@@ -138,7 +157,6 @@ func (s *Server) handleSendMessage(c *Client, msg Message) {
 		MessageText:  p.Message,
 	}
 
-	//log.Printf("❌ SEND_MESSAGE invalid payload: %s", string(msg.Payload))
 	resp, err := s.ChatUC.SendMessage(context.Background(), req)
 	if err != nil {
 		return
@@ -150,14 +168,4 @@ func (s *Server) handleSendMessage(c *Client, msg Message) {
 	})
 
 	s.Hub.Broadcast(room, event)
-}
-
-// ================= WRITE =================
-
-func (s *Server) write(c *Client) {
-	for msg := range c.Send {
-		if err := websocket.Message.Send(c.Conn, msg); err != nil {
-			return
-		}
-	}
 }

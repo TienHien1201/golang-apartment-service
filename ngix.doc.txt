@@ -1,0 +1,84 @@
+
+# cài
+sudo apt update
+sudo apt install nginx
+
+# xoá
+sudo apt remove nginx
+
+
+# cấu hình
+sudo nano /etc/nginx/sites-available/default
+
+# xoá dòng: xoá cho nhanh
+ctrl + K
+
+# test và restart lại nginx
+sudo nginx -t && sudo systemctl restart nginx
+
+
+mở 2 cổng 80 và 443 ở aws
+=====================================================================
+server {
+    listen 80;
+    server_name phamtienhien.id.vn;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://10.54.55.14:1425;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 3600;
+    }
+}
+==================================================================
+
+
+SSL ========================
+mở 2 cổng 80 và 443 ở aws
+server {
+    listen 80;
+    server_name be.tabbicus.com;   # Đổi thành domain BE của bạn
+    return 301 https://$host$request_uri;
+}
+
+server {
+    client_max_body_size 100M;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+
+    # Cloudflare Origin Certificate
+    ssl_certificate     /etc/ssl/cf-origin/tabbicus.com.pem;
+    ssl_certificate_key /etc/ssl/cf-origin/tabbicus.com.key;
+
+    server_name be.tabbicus.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3071;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Port  443;
+
+        # WebSocket (socket.io) trên cùng port
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+
+        # Giữ log/streaming ổn định
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 3600;
+    }
+}
+====================================
