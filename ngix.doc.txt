@@ -13,11 +13,144 @@ sudo nano /etc/nginx/sites-available/default
 # xoá dòng: xoá cho nhanh
 ctrl + K
 
-# test và restart lại nginx
-sudo nginx -t && sudo systemctl restart nginx
+# test và reload nginx (không restart — reload không có downtime)
+sudo nginx -t && sudo systemctl reload nginx
 
 
-mở 2 cổng 80 và 443 ở aws
+=====================================================================
+SETUP SSL VỚI CLOUDFLARE ORIGIN CERTIFICATE (khuyến nghị)
+=====================================================================
+
+Bước 1: Lấy cert từ Cloudflare Dashboard
+  phamtienhien.id.vn → SSL/TLS → Origin Server → Create Certificate
+  → Let Cloudflare generate key
+  → Hostnames: phamtienhien.id.vn, *.phamtienhien.id.vn
+  → Expiry: 15 years → Create
+  → Copy "Origin Certificate" và "Private Key"
+
+Bước 2: Lưu cert lên server
+  sudo mkdir -p /etc/nginx/ssl
+  sudo nano /etc/nginx/ssl/cert.pem   ← paste Origin Certificate
+  sudo nano /etc/nginx/ssl/key.pem    ← paste Private Key
+  sudo chmod 600 /etc/nginx/ssl/key.pem
+
+Bước 3: SSL/TLS mode trên Cloudflare
+  phamtienhien.id.vn → SSL/TLS → Overview → chọn "Full"
+  (KHÔNG dùng Flexible → loop redirect; Full (strict) cũng OK với Origin Cert)
+
+=====================================================================
+NGINX CONFIG — phamtienhien.id.vn → backend port 1425
+=====================================================================
+sudo nano /etc/nginx/sites-available/default
+---------------------------------------------------------------------
+# HTTP → redirect HTTPS
+server {
+    listen 80;
+    server_name phamtienhien.id.vn;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS → proxy đến backend Docker
+server {
+    listen 443 ssl;
+    server_name phamtienhien.id.vn;
+
+    # Cloudflare Origin Certificate
+    ssl_certificate     /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://127.0.0.1:1425;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Port  443;
+
+        # WebSocket support
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 3600;
+    }
+}
+---------------------------------------------------------------------
+sudo nginx -t && sudo systemctl reload nginx
+
+
+=====================================================================
+CLOUDFLARE DNS — A Record cần có
+=====================================================================
+  Type : A
+  Name : phamtienhien.id.vn  (hoặc @)
+  Value: 10.54.55.14          ← IP server
+  Proxy: ☁ Proxied (orange cloud) ← BẮT BUỘC để SSL Cloudflare hoạt động
+
+
+=====================================================================
+SAU KHI SETUP — cập nhật .env (Google OAuth)
+=====================================================================
+  APARTMENT_APP_AUTH_GOOGLE_CALLBACK_URL=https://phamtienhien.id.vn/api/auth/google/callback
+  # (không còn dùng localhost nữa)
+  # Cũng cần update trong Google Cloud Console:
+  #   APIs & Services → Credentials → OAuth 2.0 Client
+  #   → Authorized redirect URIs → thêm URL trên
+
+
+=====================================================================
+TROUBLESHOOTING
+=====================================================================
+
+  [LỖI] 404 Not Found (nginx) khi gọi domain
+  ────────────────────────────────────────────
+  Nguyên nhân: cert file không tồn tại → nginx bỏ qua server block 443
+               → request hit default block → 404
+  Fix: Kiểm tra cert tồn tại:  ls -la /etc/nginx/ssl/
+       Nếu thiếu → chạy lại Bước 1+2 ở trên
+
+  [LỖI] ERR_TOO_MANY_REDIRECTS
+  ──────────────────────────────
+  Nguyên nhân: Cloudflare SSL mode đang là "Flexible"
+               → Cloudflare → origin là HTTP → nginx redirect → loop
+  Fix: Cloudflare → SSL/TLS → Overview → đổi sang "Full"
+
+  [LỖI] 502 Bad Gateway
+  ──────────────────────
+  Nguyên nhân: Backend Docker không chạy hoặc sai port
+  Fix: docker compose ps → kiểm tra con_be_apartment_business healthy
+       docker compose logs service_apartment_business
+
+
+=====================================================================
+CONFIG CŨ — HTTP only (không SSL, chỉ dùng để test ban đầu)
+=====================================================================
+server {
+    listen 80;
+    server_name phamtienhien.id.vn;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://10.54.55.14:1425;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 3600;
+    }
+}
+
 =====================================================================
 server {
     listen 80;
