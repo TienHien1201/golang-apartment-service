@@ -14,6 +14,22 @@ jobs:
       - self-hosted
       - be-apartment_business
     steps:
+      # Checkout code MỚI NHẤT — đảm bảo runner có:
+      #   - docker-compose.yml mới nhất
+      #   - config/prod.yaml và tất cả config files
+      #   - .env.example (tham chiếu)
+      # Đây là fix cho lỗi: Config File "prod" Not Found
+      # (runner dùng workspace cũ nếu không checkout)
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+
+      # .env chứa secrets — không commit lên git.
+      # Phải được đặt sẵn trên server tại: /opt/apartment-secrets/.env
+      # (chỉ làm 1 lần thủ công khi setup server)
+      # Xem .env.example để biết đầy đủ các keys cần set.
+      - name: Inject .env from server secrets store
+        run: cp /opt/apartment-secrets/.env .env
+
       # Đảm bảo toàn bộ stack đang chạy (idempotent — an toàn cả lần đầu lẫn lần sau)
       - name: Ensure stack is up
         run: docker compose up -d --remove-orphans
@@ -30,14 +46,14 @@ jobs:
       - name: Wait for health check
         run: |
           echo "Waiting for backend to become healthy..."
-          for i in $(seq 1 12); do
+          for i in $(seq 1 24); do
             STATUS=$(docker inspect --format='{{.State.Health.Status}}' con_be_apartment_business 2>/dev/null || echo "missing")
-            echo "  attempt $i/12 — status: $STATUS"
+            echo "  attempt $i/24 — status: $STATUS"
             [ "$STATUS" = "healthy" ] && { echo "✅ Healthy!"; exit 0; }
             sleep 5
           done
-          echo "❌ Container not healthy after 60s"
-          docker compose logs --tail=50 service_apartment_business
+          echo "❌ Container not healthy after 120s"
+          docker compose logs --tail=80 service_apartment_business
           exit 1
 
       # Dọn image layer cũ để tiết kiệm disk
