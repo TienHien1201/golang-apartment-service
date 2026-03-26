@@ -265,4 +265,29 @@ TROUBLESHOOTING — LỖI THƯỜNG GẶP
   Fix: pkg/mysql/client.go có retry 12 lần exponential backoff
   → Xem mục 2. TẠI SAO BACKEND CRASH
 
+  ──────────────────────────────────────────────────────────────────────────────
+
+  [LỖI 3] CI fail: "undefined: echo / jwt / elasticsearch (typecheck)"
+  ─────────────────────────────────────────────────────────────────────
+  Triệu chứng:
+    Lint & Test: internal/.../auth.go#L39 — undefined: echo (typecheck)
+    Lint & Test: internal/.../token.go#L7 — undefined: jwt (typecheck)
+    Failed to restore: Cache service responded with 400
+
+  Nguyên nhân (2 lỗi cùng lúc):
+    1. GitHub Actions cache service lỗi transient → trả 400 → module cache
+       không được restore → golangci-lint chạy typecheck nhưng không có
+       external packages (echo, jwt, elasticsearch) → undefined: ...
+       [Không phải lỗi code — là lỗi module chưa được download]
+
+    2. golangci-lint v1.56.0 (cũ 2023) không hỗ trợ Go 1.24 +
+       "toolchain go1.24.6" directive → typecheck crash toàn bộ.
+
+  Fix đã áp dụng trong ci.yml:
+    - Thêm bước "go mod download" tường minh TRƯỚC khi lint
+      → modules luôn có sẵn dù cache miss 400 hay key thay đổi
+    - Nâng golangci-lint: v1.56.0 → v1.64.8
+    - Nâng golangci-lint-action: @v4 → @v6 (hỗ trợ Go 1.24)
+    - Thêm FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true (tắt warning Node 20)
+
 ================================================================================

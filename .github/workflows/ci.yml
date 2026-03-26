@@ -9,9 +9,11 @@ on:
 
 env:
   IMAGE: tienhiendev/service_apartment_business
+  # Tắt warning "Node.js 20 deprecated" — bắt buộc trước June 2026
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ── Job 1: Lint & Test ──────────────────────────────────────────────────
+  # ── Job 1: Lint & Test ───────────────────────────────────────────────────
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
@@ -21,15 +23,30 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          # cache: true giữ để tăng tốc khi cache available.
+          # go mod download bên dưới đảm bảo modules luôn có sẵn
+          # ngay cả khi cache miss (400 / key thay đổi / lần đầu chạy).
           cache: true
+
+      # ── FIX CHÍNH ──────────────────────────────────────────────────────
+      # Luôn chạy download tường minh — không phụ thuộc cache.
+      # Khi cache miss xảy ra (GitHub trả 400), bước này đảm bảo tất cả
+      # external packages (echo, jwt, elasticsearch...) có mặt trong
+      # GOMODCACHE trước khi golangci-lint chạy typecheck.
+      - name: Download modules
+        run: go mod download
 
       - name: Verify modules
         run: go mod verify
 
+      # golangci-lint-action@v6 + v1.64.x: hỗ trợ Go 1.24 và toolchain directive.
+      # v1.56.0 (cũ) không hiểu "toolchain go1.24.6" → typecheck crash toàn bộ.
       - name: Lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.56.0
+          version: v1.64.8
+          # Truyền GOMODCACHE đã có modules vào lint để tránh re-download
+          args: --timeout=5m
 
       - name: Unit tests
         run: go test -race ./...

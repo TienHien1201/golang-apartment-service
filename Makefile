@@ -13,7 +13,7 @@ IMAGE    := tienhiendev/service_apartment_business
 .PHONY: init
 # init env
 init:
-	@which golangci-lint || go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.0
+	@which golangci-lint || go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 	@which swag || go install github.com/swaggo/swag/cmd/swag@v1.16.4
 
 export-path:
@@ -25,7 +25,7 @@ export-path:
 # run
 run: export-path
 	@go fmt ./...
-	@which golangci-lint >/dev/null 2>&1 || { go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.0; export PATH=$$PATH:$$(go env GOPATH)/bin; }
+	@which golangci-lint >/dev/null 2>&1 || { go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8; export PATH=$$PATH:$$(go env GOPATH)/bin; }
 	@golangci-lint run ./...
 	@go run ./cmd/app -name $(NAME) -version $(VERSION) -env $(ENV)
 
