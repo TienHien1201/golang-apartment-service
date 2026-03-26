@@ -17,18 +17,15 @@ jobs:
       # Checkout code MỚI NHẤT — đảm bảo runner có:
       #   - docker-compose.yml mới nhất
       #   - config/prod.yaml và tất cả config files
-      #   - .env.example (tham chiếu)
-      # Đây là fix cho lỗi: Config File "prod" Not Found
-      # (runner dùng workspace cũ nếu không checkout)
+      #
+      # clean: false — GIỮ LẠI các file không được track bởi git (.env, attachments/)
+      # Mặc định clean: true sẽ chạy "git clean -ffdx" → xóa .env → docker compose lỗi.
+      # .env nằm trong workspace của runner (gitignored, không bao giờ commit)
+      # và phải được giữ nguyên qua mỗi lần deploy.
       - name: Checkout latest code
         uses: actions/checkout@v4
-
-      # .env chứa secrets — không commit lên git.
-      # Phải được đặt sẵn trên server tại: /opt/apartment-secrets/.env
-      # (chỉ làm 1 lần thủ công khi setup server)
-      # Xem .env.example để biết đầy đủ các keys cần set.
-      - name: Inject .env from server secrets store
-        run: cp /opt/apartment-secrets/.env .env
+        with:
+          clean: false
 
       # Đảm bảo toàn bộ stack đang chạy (idempotent — an toàn cả lần đầu lẫn lần sau)
       - name: Ensure stack is up

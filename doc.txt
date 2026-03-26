@@ -295,28 +295,32 @@ TROUBLESHOOTING — LỖI THƯỜNG GẶP
     - Nâng golangci-lint-action: @v4 → @v6 (hỗ trợ Go 1.24)
     - Thêm FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true (tắt warning Node 20)
 
-  [LỖI 4] CD fail: Config File "prod" Not Found
-  ─────────────────────────────────────────────
+  [LỖI 4] CD fail: "cp: cannot stat '/opt/apartment-secrets/.env': No such file or directory"
+  ──────────────────────────────────────────────────────────────────────────────────────────
   Triệu chứng:
-    panic: Failed to load configuration: failed to load prod config:
-    Config File "prod" Not Found in "[/app/config]"
+    Run cp /opt/apartment-secrets/.env .env
+    cp: cannot stat '/opt/apartment-secrets/.env': No such file or directory
+    Error: Process completed with exit code 1.
 
-  Nguyên nhân (2 lỗi cùng lúc):
-    1. CD workflow KHÔNG có actions/checkout → runner dùng workspace cũ
-       → config/prod.yaml mới không có mặt trong workspace runner
-       → app start với --env=prod nhưng không tìm thấy file
-
-    2. .env không có trong workspace sau checkout
-       (.env bị gitignore, checkout không lấy được)
-       → docker compose báo env_file: .env not found
+  Nguyên nhân gốc:
+    actions/checkout@v4 mặc định chạy "git clean -ffdx" (clean: true).
+    Lệnh này xóa TẤT CẢ file không được track bởi git khỏi workspace,
+    bao gồm .env (bị gitignore). Sau đó bước "cp /opt/..." fail vì
+    thư mục /opt/apartment-secrets/ chưa bao giờ được tạo trên server.
 
   Fix đã áp dụng trong cd.yml:
-    - Thêm actions/checkout@v4 → luôn có code + config mới nhất
-    - Thêm bước copy .env từ /opt/apartment-secrets/.env (secrets store)
+    Dùng "clean: false" trong actions/checkout@v4:
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+        with:
+          clean: false   ← giữ lại .env trong workspace của runner
 
-  Setup 1 lần trên server:
-    sudo mkdir -p /opt/apartment-secrets
-    scp .env user@server:/opt/apartment-secrets/.env
-    # Sau đó CD workflow tự xử lý mọi deploy tiếp theo
+    Xóa bước "Inject .env from server secrets store" (không cần nữa).
+
+  Tại sao clean: false an toàn:
+    - git checkout vẫn update đúng tất cả file được track (code, config, yml...)
+    - Chỉ bỏ qua bước xóa file untracked/gitignored
+    - .env và attachments/ trên server được giữ nguyên
+    - Không ảnh hưởng tính đúng đắn của deploy
 
 ================================================================================
