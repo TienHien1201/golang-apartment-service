@@ -14,19 +14,45 @@ jobs:
       - self-hosted
       - be-apartment_business
     steps:
-      # Checkout code MỚI NHẤT — đảm bảo runner có:
-      #   - docker-compose.yml mới nhất
-      #   - config/prod.yaml và tất cả config files
-      #
-      # clean: false — GIỮ LẠI các file không được track bởi git (.env, attachments/)
-      # Mặc định clean: true sẽ chạy "git clean -ffdx" → xóa .env → docker compose lỗi.
-      # .env nằm trong workspace của runner (gitignored, không bao giờ commit)
-      # và phải được giữ nguyên qua mỗi lần deploy.
+      # ─── BƯỚC 1: Checkout ──────────────────────────────────────────────────────
+      # clean: false — KHÔNG chạy "git clean -ffdx"
+      # Giữ lại các file gitignored trong workspace (.env, attachments/...).
+      # Mặc định clean: true sẽ xóa .env → docker compose fail ngay bước tiếp theo.
       - name: Checkout latest code
         uses: actions/checkout@v4
         with:
           clean: false
 
+      # ─── BƯỚC 2: Đảm bảo .env tồn tại (defensive, 3-layer fallback) ───────────
+      # Layer 1 — Happy path: .env đã có trong workspace (clean: false giữ lại từ lần trước)
+      # Layer 2 — Recovery:   workspace bị reset lần đầu → lấy từ persistent secrets store
+      #                       nằm NGOÀI workspace (không bị git clean xóa bao giờ)
+      # Layer 3 — Hard fail:  cả hai đều không có → in hướng dẫn setup rõ ràng rồi exit 1
+      - name: Ensure .env is available
+        run: |
+          if [ -f .env ]; then
+            echo "✅ .env found in workspace (preserved by clean: false)"
+            exit 0
+          fi
+
+          SECRETS_SRC="/root/apartment-service-secrets/.env"
+          if [ -f "$SECRETS_SRC" ]; then
+            cp "$SECRETS_SRC" .env
+            echo "✅ .env restored from persistent secrets store: $SECRETS_SRC"
+            exit 0
+          fi
+
+          echo ""
+          echo "❌ .env not found in workspace or secrets store."
+          echo "One-time server setup required (chỉ làm 1 lần):"
+          echo ""
+          echo "  mkdir -p /root/apartment-service-secrets"
+          echo "  cp /path/to/your/.env /root/apartment-service-secrets/.env"
+          echo "  chmod 600 /root/apartment-service-secrets/.env"
+          echo ""
+          exit 1
+
+      # ─── BƯỚC 3+: Deploy ───────────────────────────────────────────────────────
       # Đảm bảo toàn bộ stack đang chạy (idempotent — an toàn cả lần đầu lẫn lần sau)
       - name: Ensure stack is up
         run: docker compose up -d --remove-orphans

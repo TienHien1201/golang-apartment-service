@@ -295,32 +295,39 @@ TROUBLESHOOTING — LỖI THƯỜNG GẶP
     - Nâng golangci-lint-action: @v4 → @v6 (hỗ trợ Go 1.24)
     - Thêm FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true (tắt warning Node 20)
 
-  [LỖI 4] CD fail: "cp: cannot stat '/opt/apartment-secrets/.env': No such file or directory"
-  ──────────────────────────────────────────────────────────────────────────────────────────
+  [LỖI 4] CD fail: ".env not found" (docker compose lỗi ngay đầu)
+  ────────────────────────────────────────────────────────────────
   Triệu chứng:
-    Run cp /opt/apartment-secrets/.env .env
-    cp: cannot stat '/opt/apartment-secrets/.env': No such file or directory
+    env file .../golang-apartment-service/.env not found:
+    stat ...: no such file or directory
     Error: Process completed with exit code 1.
 
-  Nguyên nhân gốc:
-    actions/checkout@v4 mặc định chạy "git clean -ffdx" (clean: true).
-    Lệnh này xóa TẤT CẢ file không được track bởi git khỏi workspace,
-    bao gồm .env (bị gitignore). Sau đó bước "cp /opt/..." fail vì
-    thư mục /opt/apartment-secrets/ chưa bao giờ được tạo trên server.
+  Nguyên nhân gốc — chuỗi lỗi xếp tầng:
+    Bước 1: actions/checkout@v4 mặc định clean: true → chạy "git clean -ffdx"
+            → xóa TẤT CẢ file gitignored khỏi workspace, bao gồm .env
+    Bước 2: docker compose up đọc docker-compose.yml → thấy "env_file: .env"
+            → kiểm tra file → không tồn tại → crash
 
-  Fix đã áp dụng trong cd.yml:
-    Dùng "clean: false" trong actions/checkout@v4:
-      - name: Checkout latest code
-        uses: actions/checkout@v4
-        with:
-          clean: false   ← giữ lại .env trong workspace của runner
+    Dùng "clean: false" giải quyết các lần deploy SAU NHƯNG không phục hồi
+    .env nếu workspace đã bị xóa trước đó (lần đầu chuyển sang clean: false).
 
-    Xóa bước "Inject .env from server secrets store" (không cần nữa).
+  Fix đã áp dụng — chiến lược 3-layer fallback trong cd.yml:
+    Layer 1 (happy path): .env đã có trong workspace
+                          → clean: false giữ lại từ lần trước → dùng ngay
+    Layer 2 (recovery):   workspace bị reset lần đầu hoặc server mới
+                          → copy từ persistent secrets store NGOÀI workspace:
+                          /root/apartment-service-secrets/.env
+    Layer 3 (hard fail):  cả hai đều không có → in hướng dẫn setup rõ ràng
+                          → exit 1 với message chi tiết
 
-  Tại sao clean: false an toàn:
-    - git checkout vẫn update đúng tất cả file được track (code, config, yml...)
-    - Chỉ bỏ qua bước xóa file untracked/gitignored
-    - .env và attachments/ trên server được giữ nguyên
-    - Không ảnh hưởng tính đúng đắn của deploy
+  Setup 1 lần trên server (CHỈ LÀM 1 LẦN dù deploy bao nhiêu lần):
+    mkdir -p /root/apartment-service-secrets
+    cp /path/to/your/.env /root/apartment-service-secrets/.env
+    chmod 600 /root/apartment-service-secrets/.env
+
+  Tại sao secrets store nằm ngoài workspace:
+    - Git clean, runner reset, disk wipe → workspace bị xóa → secrets store vẫn còn
+    - Cập nhật secrets độc lập với deploy (không cần push code để đổi secret)
+    - Phân tách rõ: code (git) vs credentials (server-local, chmod 600)
 
 ================================================================================

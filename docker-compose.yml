@@ -1,5 +1,3 @@
-version: '3.8'
-
 # ─────────────────────────────────────────────────────────────────────────────
 # PRODUCTION stack — chỉ dùng pre-built image từ registry.
 # Local dev: chạy `docker compose up -d --build` để auto-merge
